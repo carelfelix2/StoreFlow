@@ -4,7 +4,15 @@
 You are building Felix Snack POS, a modern multi-device POS web app for a snack wholesale/retail store.
 
 ## Main Goal
-Build a fast, clean, production-ready POS system using Next.js frontend and Laravel API/backend.
+Build a fast, clean, production-ready POS system using Full Next.js architecture (frontend + backend in one project).
+
+## Architecture
+- **Next.js 15** is the full-stack framework
+- **Route Handlers** (`src/app/api/`) for REST API endpoints
+- **Server Actions** for form mutations where appropriate
+- **Prisma ORM** for database access
+- **Auth.js v5** for authentication
+- **Never create Laravel, PHP, or separate backend files.** Everything lives in the Next.js project.
 
 ## Coding Principles
 - Keep code simple and maintainable.
@@ -33,33 +41,97 @@ Build a fast, clean, production-ready POS system using Next.js frontend and Lara
 - Use client components only when interaction is needed.
 - Use React Hook Form + Zod for forms.
 - Use Zustand for cart/local UI state.
-- Use TanStack Query/SWR for API data fetching.
+- Use TanStack Query for API data fetching.
 - Use centralized API client.
-- All currency must use formatCurrency().
-- All date display must use formatDate().
+- All currency must use `formatCurrency()`.
+- All date display must use `formatDate()`.
 
-## Backend Rules
-- Use REST API.
-- Validate all requests.
-- Enforce role permission.
-- Never trust frontend totals.
-- Backend must recalculate order totals.
-- Backend must verify stock availability.
-- Stock only decreases after payment paid.
-- Payment webhook must be validated.
+## Backend Rules (Route Handlers + Server Actions)
+- Use Prisma for all database queries.
+- Validate all requests with Zod schemas.
+- Enforce role permission via Auth.js session + helpers.
+- Never trust frontend totals — recalculate on server.
+- Verify stock availability before order submission.
+- Stock only decreases after payment status `paid`.
+- Payment webhook must validate Midtrans signature.
 - Store all payment logs.
 - Store all order status logs.
 
-## Database Rules
-- Use migrations.
-- Use foreign keys.
-- Use enum-like statuses carefully.
-- Use soft delete for products.
-- Store price snapshots in order_items.
-- Store product_name snapshot in order_items.
-- Use stock_movements for every stock change.
+## Database Rules (Prisma)
+- Use Prisma migrations (`npx prisma migrate dev`).
+- Use `@relation` for foreign keys.
+- Use enums for statuses via Prisma enum types.
+- Use soft delete for products (`is_active = false`).
+- Store price snapshots in `order_items`.
+- Store product name snapshot in `order_items`.
+- Use `stock_movements` for every stock change.
+
+## File Organization
+
+```
+src/
+  app/
+    api/                          # Route Handlers (REST API)
+      auth/                       # Auth.js configuration
+      products/
+        route.ts                  # GET (list), POST (create)
+        [id]/
+          route.ts                # GET, PUT, DELETE
+          toggle/route.ts         # PATCH toggle active
+      categories/
+        route.ts
+        [id]/route.ts
+      orders/
+        route.ts
+        [id]/
+          route.ts
+          review/route.ts
+          items/route.ts
+          approve/route.ts
+          cancel/route.ts
+          complete/route.ts
+          payments/
+            cash/route.ts
+            qris/route.ts
+          receipt/route.ts
+          print/route.ts
+      payments/
+        [id]/
+          status/route.ts
+          manual-paid/route.ts
+        webhook/route.ts
+      reports/
+        daily/route.ts
+        products/route.ts
+        stock/route.ts
+        payments/route.ts
+      stock/
+        movements/route.ts
+        adjustment/route.ts
+      settings/route.ts
+      users/
+        route.ts
+        [id]/route.ts
+  lib/
+    prisma.ts                     # Prisma client singleton
+    auth.ts                       # Auth.js configuration
+    auth-helpers.ts               # getSession, requireRole, etc.
+    pusher.ts                     # Pusher server SDK
+    midtrans.ts                   # Midtrans API wrapper
+    format-currency.ts
+    format-date.ts
+    constants.ts
+    utils.ts
+  types/
+    user.ts
+    product.ts
+    order.ts
+    payment.ts
+    report.ts
+```
 
 ## Do Not
+- Do not create Laravel, PHP, or separate backend files.
 - Do not build all features at once.
 - Do not add dark mode first.
 - Do not make dashboard too crowded.

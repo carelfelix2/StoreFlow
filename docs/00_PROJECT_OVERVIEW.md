@@ -6,6 +6,17 @@ Felix Snack POS
 ## Tujuan
 Membangun aplikasi POS modern untuk toko agen snack milik keluarga. Aplikasi ini digunakan untuk mencatat pesanan, memverifikasi order, menerima pembayaran Cash/QRIS, mencetak struk, mengelola stok barang, dan melihat laporan penjualan.
 
+## Architecture
+Full Next.js 15 application:
+- **Frontend:** React 19 + App Router + shadcn/ui
+- **Backend:** Next.js Route Handlers (`src/app/api/`) + Server Actions
+- **Database:** PostgreSQL via Prisma ORM
+- **Auth:** Auth.js v5 with credentials provider
+- **Realtime:** Pusher
+- **Payment:** Midtrans (QRIS)
+
+Single project, single deployment (Vercel), single language (TypeScript) — end-to-end type safety.
+
 ## Masalah Saat Ini
 Toko masih menggunakan aplikasi kasir pihak ketiga yang tampilannya kurang bagus, kurang fleksibel, dan tidak sesuai dengan workflow toko. Proses order masih kurang rapi karena karyawan mencatat pesanan, lalu kasir harus mengecek manual.
 

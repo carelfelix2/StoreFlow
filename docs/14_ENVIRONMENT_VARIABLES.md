@@ -3,45 +3,41 @@
 ## Frontend .env.local
 
 ```env
+# App
 NEXT_PUBLIC_APP_NAME="Felix Snack POS"
-NEXT_PUBLIC_API_URL="http://localhost:8000/api"
-NEXT_PUBLIC_PUSHER_APP_KEY=""
-NEXT_PUBLIC_PUSHER_CLUSTER="ap1"
-```
 
-## Backend .env
+# Database (Prisma)
+DATABASE_URL="postgresql://postgres:password@localhost:5432/felix_snack_pos"
 
-```env
-APP_NAME="Felix Snack POS"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
+# Auth.js v5
+AUTH_SECRET="generate-with-npx-auth-secret"
+AUTH_URL="http://localhost:3000"
 
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=felix_snack_pos
-DB_USERNAME=postgres
-DB_PASSWORD=
-
-FRONTEND_URL=http://localhost:3000
-
-MIDTRANS_SERVER_KEY=
-MIDTRANS_CLIENT_KEY=
+# Midtrans (Payment Gateway)
+MIDTRANS_SERVER_KEY="SB-Mid-server-xxx"
+MIDTRANS_CLIENT_KEY="SB-Mid-client-xxx"
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY="SB-Mid-client-xxx"
 MIDTRANS_IS_PRODUCTION=false
-MIDTRANS_IS_SANITIZED=true
-MIDTRANS_IS_3DS=true
 
-PUSHER_APP_ID=
-PUSHER_APP_KEY=
-PUSHER_APP_SECRET=
-PUSHER_HOST=
+# Pusher (Realtime)
+PUSHER_APP_ID=""
+PUSHER_APP_KEY=""
+PUSHER_APP_SECRET=""
+PUSHER_HOST=""
 PUSHER_PORT=443
 PUSHER_SCHEME=https
-PUSHER_APP_CLUSTER=ap1
+PUSHER_APP_CLUSTER="ap1"
+NEXT_PUBLIC_PUSHER_APP_KEY=""
+NEXT_PUBLIC_PUSHER_CLUSTER="ap1"
+
+# Printer
+PRINTER_TYPE="browser"
 ```
 
 ## Notes
 - Never commit real payment keys.
-- Never expose server key to frontend.
-- Use sandbox payment gateway first.
+- Never expose `MIDTRANS_SERVER_KEY`, `AUTH_SECRET`, or `PUSHER_APP_SECRET` to the client.
+- Prefix public env vars with `NEXT_PUBLIC_` so they are available in the browser.
+- Use `npx auth secret` to generate `AUTH_SECRET`.
+- Use Midtrans sandbox keys during development.
+- `DATABASE_URL` format: `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`

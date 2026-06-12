@@ -1,11 +1,14 @@
 # API Spec
 
-Base URL:
-`/api`
+Base URL: `/api` (Next.js Route Handlers under `src/app/api/`)
 
-## Auth
+All endpoints are implemented as Next.js Route Handlers. Auth-protected routes use Auth.js session validation.
 
-### POST /auth/login
+## Auth (via Auth.js)
+
+### POST /api/auth/login
+NextAuth credentials provider endpoint.
+
 Request:
 ```json
 {
@@ -20,22 +23,28 @@ Response:
   "user": {
     "id": "1",
     "name": "Owner",
+    "email": "owner@example.com",
     "role": "owner"
   },
-  "token": "jwt/session-token"
+  "token": "jwt-session-token"
 }
 ```
 
-### POST /auth/logout
+### GET /api/auth/session
+Get current session.
+
+### POST /api/auth/logout
+Clear session.
 
 ## Products
 
-### GET /products
+### GET /api/products
 Query:
 - search
 - category_id
 - is_active
 - low_stock
+- page, per_page
 
 Response:
 ```json
@@ -65,26 +74,33 @@ Response:
 }
 ```
 
-### POST /products
-Create product.
+### POST /api/products
+Create product (owner only).
 
-### PUT /products/{id}
-Update product.
+### GET /api/products/[id]
+Product detail with units.
 
-### DELETE /products/{id}
-Soft delete / deactivate product.
+### PUT /api/products/[id]
+Update product (owner).
+
+### DELETE /api/products/[id]
+Soft delete / deactivate product (owner).
+
+### PATCH /api/products/[id]/toggle
+Toggle is_active (owner).
 
 ## Categories
 
-### GET /categories
-### POST /categories
-### PUT /categories/{id}
-### DELETE /categories/{id}
+### GET /api/categories
+### POST /api/categories
+### GET /api/categories/[id]
+### PUT /api/categories/[id]
+### DELETE /api/categories/[id]
 
 ## Orders
 
-### POST /orders
-Create draft/submitted order.
+### POST /api/orders
+Create draft or submitted order.
 
 Request:
 ```json
@@ -111,34 +127,32 @@ Response:
 }
 ```
 
-### GET /orders
-Query:
-- status
-- date
-- created_by
-- cashier_id
+### GET /api/orders
+Query: status, date, created_by, cashier_id
 
-### GET /orders/{id}
-Detail order.
+### GET /api/orders/[id]
+Detail order with items.
 
-### PATCH /orders/{id}/review
-Set status reviewing.
+### PATCH /api/orders/[id]/review
+Set status reviewing (owner/kasir).
 
-### PATCH /orders/{id}/items
-Edit item sebelum paid.
+### PATCH /api/orders/[id]/items
+Edit items before paid (owner/kasir).
 
-### PATCH /orders/{id}/approve
-Approve order.
+### PATCH /api/orders/[id]/approve
+Approve order (owner/kasir).
 
-### PATCH /orders/{id}/cancel
-Cancel order sebelum paid.
+### PATCH /api/orders/[id]/cancel
+Cancel order before paid (staff/kasir/owner).
 
-### PATCH /orders/{id}/complete
-Complete order setelah paid/printed.
+### PATCH /api/orders/[id]/complete
+Complete order after paid/printed (kasir).
 
 ## Payments
 
-### POST /orders/{id}/payments/cash
+### POST /api/orders/[id]/payments/cash
+Process cash payment.
+
 Request:
 ```json
 {
@@ -156,8 +170,8 @@ Response:
 }
 ```
 
-### POST /orders/{id}/payments/qris
-Generate QRIS.
+### POST /api/orders/[id]/payments/qris
+Generate QRIS via Midtrans.
 
 Response:
 ```json
@@ -169,28 +183,27 @@ Response:
 }
 ```
 
-### GET /payments/{id}/status
-Check payment status.
+### GET /api/payments/[id]/status
+Check payment status (poll Midtrans).
 
-### POST /payments/webhook
-Payment gateway callback.
+### POST /api/payments/webhook
+Midtrans callback (public endpoint, signature-validated).
 
-### PATCH /payments/{id}/manual-paid
-Fallback manual mark as paid. Owner/kasir only.
+### PATCH /api/payments/[id]/manual-paid
+Manual mark as paid fallback (owner/kasir only).
 
 ## Receipt
 
-### GET /orders/{id}/receipt
-Return receipt data.
+### GET /api/orders/[id]/receipt
+Return receipt data for display/print.
 
-### POST /orders/{id}/print
-Mark as printed.
+### POST /api/orders/[id]/print
+Mark order as printed.
 
 ## Reports
 
-### GET /reports/daily
-Query:
-- date
+### GET /api/reports/daily
+Query: date
 
 Response:
 ```json
@@ -205,9 +218,40 @@ Response:
 }
 ```
 
-### GET /reports/products
-### GET /reports/stock
-### GET /reports/payments
+### GET /api/reports/products
+### GET /api/reports/stock
+### GET /api/reports/payments
+
+## Stock
+
+### GET /api/stock/movements
+Query: product_id, type, start_date, end_date
+
+### POST /api/stock/adjustment
+Manual stock adjustment (owner only).
+
+## Store Settings
+
+### GET /api/settings
+### PUT /api/settings
+Update store settings (owner).
+
+## Users
+
+### GET /api/users
+List users (owner).
+
+### POST /api/users
+Create user (owner).
+
+### GET /api/users/[id]
+User detail (owner).
+
+### PUT /api/users/[id]
+Update user (owner).
+
+### DELETE /api/users/[id]
+Deactivate user (owner).
 
 ## Realtime Events
 
@@ -228,7 +272,35 @@ Payload:
 Triggered when order item/status changes.
 
 ### payment.paid
-Triggered when QRIS/cash paid.
+Triggered when QRIS/cash payment confirmed.
 
 ### stock.low
-Triggered when stock below min_stock.
+Triggered when stock drops below min_stock.
+
+## API Response Envelope
+
+All responses follow a consistent format:
+
+```json
+// Success
+{ "success": true, "data": { ... }, "message": "..." }
+
+// Collection
+{ "success": true, "data": [ ... ], "meta": { "current_page": 1, "per_page": 20, "total": 150, "last_page": 8 } }
+
+// Error
+{ "success": false, "message": "Validation failed", "errors": { "email": ["Email sudah terdaftar"] } }
+```
+
+## Rate Limiting
+
+- Auth routes: 5 requests per minute
+- General API: 60 requests per minute per user
+- Webhook: unlimited (Midtrans may send bursts)
+
+## Implementation: Route Handlers vs Server Actions
+
+| Pattern | Use For |
+|---------|---------|
+| **Route Handlers** (`route.ts`) | Standard CRUD APIs, webhooks, endpoints called from client-side TanStack Query |
+| **Server Actions** (`"use server"`) | Form submissions that need direct DB access (product create/edit, settings save) |

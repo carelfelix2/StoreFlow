@@ -1,0 +1,3 @@
+// Custom hooks are defined here as they are built in later phases.
+// See docs/16_IMPLEMENTATION_PLAN.md for the planned hooks.
+export {};

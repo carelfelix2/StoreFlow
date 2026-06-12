@@ -1,0 +1,449 @@
+// =============================================================================
+// Felix Snack POS — Prisma Schema
+// Full Next.js Architecture | PostgreSQL | 12 Models | Phase 2.7 (Auth.js v5)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserRole {
+  owner
+  cashier
+  staff
+}
+
+/// Valid OrderStatus transitions:
+///   Normal flow:  draft -> submitted -> reviewing -> approved -> waiting_payment -> paid -> printed -> completed
+///   Cancel flow:  draft/submitted/reviewing/approved/waiting_payment -> cancelled
+///   Void flow:    paid/completed -> voided
+///   Each status change MUST be recorded in OrderLog with the appropriate action.
+enum OrderStatus {
+  draft
+  submitted
+  reviewing
+  approved
+  waiting_payment
+  paid
+  printed
+  completed
+  cancelled
+  voided
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  expired
+  cancelled
+  refunded
+}
+
+enum PaymentMethod {
+  cash
+  qris
+}
+
+enum StockMovementType {
+  sale
+  stock_in
+  adjustment
+  return
+  void
+}
+
+enum CustomerType {
+  regular
+  reseller
+  grosir
+}
+
+/// Actions for OrderLog audit trail — each maps to a specific order lifecycle event.
+enum OrderLogAction {
+  STATUS_CHANGED
+  ITEM_ADDED
+  ITEM_UPDATED
+  ITEM_REMOVED
+  PAYMENT_STARTED
+  PAYMENT_PAID
+  ORDER_CANCELLED
+  ORDER_VOIDED
+  PRINTED
+}
+
+// =============================================================================
+// MODELS
+// =============================================================================
+
+/// Users — owner, cashier, staff for authentication & audit
+/// Adapted for Auth.js v5 — emailVerified added for future email verification support.
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  password      String
+  image         String?
+  role          UserRole
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  // Auth.js v5 relations
+  accounts Account[]
+  sessions Session[]
+
+  // Business relations
+  created_orders   Order[]          @relation("CreatedBy")
+  cashed_orders    Order[]          @relation("CashierOrder")
+  stock_movements  StockMovement[]
+  order_logs       OrderLog[]
+  payment_logs     PaymentLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// =============================================================================
+// Auth.js v5 Models
+// =============================================================================
+
+/// Auth.js Account model — links user to OAuth/Credentials provider accounts.
+/// For Credentials provider, each user will have one Account record.
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @map("refresh_token")
+  access_token      String? @map("access_token")
+  expires_at        Int?    @map("expires_at")
+  token_type        String? @map("token_type")
+  scope             String?
+  id_token          String? @map("id_token")
+  session_state     String? @map("session_state")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Auth.js Session model — manages user sessions.
+/// Each login creates a session record; logout destroys it.
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Auth.js VerificationToken model — used for email verification & password reset.
+/// Stores one-time tokens with expiration.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  created_at DateTime @default(now())
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+/// Categories — product grouping (snack, permen, wafer, minuman, etc.)
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  color     String?
+  icon      String?
+  is_active Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  products Product[]
+
+  @@index([slug])
+  @@index([is_active])
+  @@map("categories")
+}
+
+/// Products — the core inventory items
+model Product {
+  id            String   @id @default(uuid())
+  category_id   String
+  name          String
+  sku           String?  @unique
+  barcode       String?
+  image         String?
+  base_unit     String   @default("pcs")
+  cost_price    Decimal  @db.Decimal(15, 2)
+  selling_price Decimal  @db.Decimal(15, 2)
+  stock         Decimal  @default(0) @db.Decimal(10, 2)
+  min_stock     Decimal  @default(0) @db.Decimal(10, 2)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relationships
+  category        Category         @relation(fields: [category_id], references: [id], onDelete: Restrict)
+  units           ProductUnit[]
+  order_items     OrderItem[]
+  stock_movements StockMovement[]
+
+  @@index([category_id])
+  @@index([name])
+  @@index([sku])
+  @@index([is_active])
+  @@index([stock])
+  @@map("products")
+}
+
+/// ProductUnits — multi-satuan support (pcs, renteng, dus, karton)
+model ProductUnit {
+  id                String   @id @default(uuid())
+  product_id        String
+  unit_name         String   @default("pcs")
+  conversion_to_base Decimal  @db.Decimal(10, 2)
+  selling_price     Decimal  @db.Decimal(15, 2)
+  is_default        Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  // Relationships
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, unit_name])
+  @@index([product_id])
+  @@map("product_units")
+}
+
+/// Customers — optional buyer tracking for regular/reseller/grosir
+model Customer {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String?
+  address    String?
+  type       CustomerType @default(regular)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  orders Order[]
+
+  @@index([name])
+  @@index([phone])
+  @@map("customers")
+}
+
+/// Orders — the central transaction entity
+model Order {
+  id             String      @id @default(uuid())
+  order_number   String      @unique
+  customer_id    String?
+  customer_name  String?
+  created_by     String
+  cashier_id     String?
+  status         OrderStatus @default(draft)
+  subtotal       Decimal     @default(0) @db.Decimal(15, 2)
+  discount_total Decimal     @default(0) @db.Decimal(15, 2)
+  tax_total      Decimal     @default(0) @db.Decimal(15, 2)
+  grand_total    Decimal     @default(0) @db.Decimal(15, 2)
+  notes          String?
+  submitted_at   DateTime?
+  approved_at    DateTime?
+  paid_at        DateTime?
+  printed_at     DateTime?
+  completed_at   DateTime?
+  cancelled_at   DateTime?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  // Relationships
+  customer        Customer?        @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  staff           User             @relation("CreatedBy", fields: [created_by], references: [id], onDelete: Restrict)
+  cashier         User?            @relation("CashierOrder", fields: [cashier_id], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  payments        Payment[]
+  logs            OrderLog[]
+  stock_movements StockMovement[]
+
+  @@index([order_number])
+  @@index([status])
+  @@index([created_by])
+  @@index([cashier_id])
+  @@index([customer_id])
+  @@index([created_at])
+  @@index([status, created_at])
+  @@map("orders")
+}
+
+/// OrderItems — line items with price snapshots
+model OrderItem {
+  id                String   @id @default(uuid())
+  order_id          String
+  product_id        String
+  product_name      String
+  unit_name         String
+  qty               Decimal  @db.Decimal(10, 2)
+  conversion_to_base Decimal  @db.Decimal(10, 2)
+  base_qty          Decimal  @db.Decimal(10, 2)
+  price             Decimal  @db.Decimal(15, 2)
+  cost_price        Decimal  @db.Decimal(15, 2)
+  subtotal          Decimal  @db.Decimal(15, 2)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  // Relationships
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Restrict)
+
+  @@index([order_id])
+  @@index([product_id])
+  @@map("order_items")
+}
+
+/// Payments — cash and QRIS payments
+model Payment {
+  id                String        @id @default(uuid())
+  order_id          String
+  method            PaymentMethod
+  status            PaymentStatus @default(pending)
+  amount            Decimal       @db.Decimal(15, 2)
+  paid_amount       Decimal       @default(0) @db.Decimal(15, 2)
+  change_amount     Decimal       @default(0) @db.Decimal(15, 2)
+  gateway           String?
+  gateway_reference String?       @unique
+  qris_url          String?
+  expired_at        DateTime?
+  paid_at           DateTime?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  // Relationships
+  order Order         @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  logs  PaymentLog[]
+
+  @@index([order_id])
+  @@index([status])
+  @@index([gateway_reference])
+  @@index([method])
+  @@map("payments")
+}
+
+/// PaymentLogs — immutable audit trail for payment events
+/// created_by: nullable FK to User for manual payment marking (cashier/owner).
+///   Webhook-created logs (QRIS callback) may keep this null.
+model PaymentLog {
+  id         String   @id @default(uuid())
+  payment_id String
+  created_by String?
+  event      String
+  payload    Json?
+  created_at DateTime @default(now())
+
+  // Relationships
+  payment Payment @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([payment_id])
+  @@index([created_by])
+  @@index([created_at])
+  @@map("payment_logs")
+}
+
+/// StockMovements — append-only stock change tracking
+/// qty convention:
+///   Positive qty = stock increase (stock_in, return, adjustment increase)
+///   Negative qty = stock decrease (sale, void, adjustment decrease)
+///   sale       -> negative qty (stock decreases)
+///   stock_in   -> positive qty (stock increases)
+///   return     -> positive qty (stock increases)
+///   adjustment -> positive (increase) or negative (decrease)
+///   void       -> positive qty (stock increases, reversing a sale)
+/// unit_name / unit_qty: record the non-base unit used during manual stock input
+///   (e.g., "dus" with qty 2 instead of base unit "pcs" with qty 48).
+///   These are optional — when null, the movement is assumed to be in base units.
+model StockMovement {
+  id           String            @id @default(uuid())
+  product_id   String
+  order_id     String?
+  type         StockMovementType
+  qty          Decimal           @db.Decimal(10, 2)
+  unit_name    String?
+  unit_qty     Decimal?          @db.Decimal(10, 2)
+  stock_before Decimal           @db.Decimal(10, 2)
+  stock_after  Decimal           @db.Decimal(10, 2)
+  notes        String?
+  created_by   String
+  created_at   DateTime          @default(now())
+
+  // Relationships
+  product Product @relation(fields: [product_id], references: [id], onDelete: Restrict)
+  order   Order?  @relation(fields: [order_id], references: [id], onDelete: Restrict)
+  user    User    @relation(fields: [created_by], references: [id], onDelete: Restrict)
+
+  @@index([product_id])
+  @@index([order_id])
+  @@index([type])
+  @@index([created_at])
+  @@index([product_id, created_at])
+  @@map("stock_movements")
+}
+
+/// OrderLogs — immutable audit trail for order events
+model OrderLog {
+  id         String         @id @default(uuid())
+  order_id   String
+  user_id    String?
+  action     OrderLogAction
+  old_value  Json?
+  new_value  Json?
+  created_at DateTime       @default(now())
+
+  // Relationships
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([order_id])
+  @@index([user_id])
+  @@index([created_at])
+  @@map("order_logs")
+}
+
+/// StoreSettings — singleton table for store configuration
+model StoreSetting {
+  id            String   @id @default(uuid())
+  store_name    String   @default("Felix Snack")
+  address       String?
+  phone         String?
+  receipt_footer String?
+  logo          String?
+  qris_provider String   @default("midtrans")
+  printer_type  String   @default("browser")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("store_settings")
+}

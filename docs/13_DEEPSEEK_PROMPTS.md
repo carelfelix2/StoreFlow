@@ -10,15 +10,19 @@ Read all markdown files in this project first.
 We are building Felix Snack POS, a modern multi-device POS system for a snack store.
 
 Tech stack:
-- Next.js 15
+- Next.js 15 (full stack — frontend + API Route Handlers)
 - TypeScript
 - Tailwind CSS
 - shadcn/ui
+- Prisma ORM
+- PostgreSQL
+- Auth.js v5
 - Zustand
 - React Hook Form
 - Zod
-- TanStack Query/SWR
-- Backend will be Laravel API
+- TanStack Query
+- Pusher for realtime
+- Midtrans for QRIS
 
 Your task:
 Set up the frontend foundation:
@@ -31,6 +35,8 @@ Set up the frontend foundation:
 7. formatDate helper
 8. Basic type files
 9. API client placeholder
+10. Prisma schema setup
+11. Auth.js configuration
 
 Follow 12_AI_CODING_RULES.md.
 Do not build payment or order logic yet.
@@ -68,7 +74,7 @@ Build /cashier page.
 Requirements:
 - Left side order queue
 - Right side selected order detail
-- Realtime-ready architecture
+- Realtime-ready architecture (Pusher)
 - Buttons: Review, Approve, Cancel, Cash, QRIS
 - Payment panel placeholder
 - Clean POS layout for 1366x768 laptop
@@ -86,7 +92,7 @@ Read all markdown files first.
 Build product management page.
 
 Requirements:
-- Product table
+- Product table (TanStack Table)
 - Search
 - Category filter
 - Create/edit product form
@@ -139,26 +145,31 @@ Requirements:
 Follow 10_PRINTER_RECEIPT.md.
 ```
 
-## Prompt 7 — Backend Laravel API
+## Prompt 7 — Build API Route Handlers
 
 ```text
 Read all markdown files first.
 
-Build Laravel API backend for Felix Snack POS.
+Build Next.js Route Handlers (REST API) for Felix Snack POS.
 
 Requirements:
-- Auth
-- Role permissions
-- Products
-- Categories
-- Product units
-- Orders
-- Order items
-- Payments
-- Stock movements
-- Reports
-- Payment logs
-- Order logs
+- Auth (via Auth.js — already configured)
+- Role permissions (middleware helpers)
+- Products (CRUD with multi-unit support)
+- Categories (CRUD)
+- Orders (submit, review, approve, cancel, complete)
+- Order items (edit before paid)
+- Payments (cash processing, QRIS generation, webhook handler)
+- Stock movements (auto on payment, manual adjustment)
+- Reports (daily sales, product ranking)
+- Store settings
+
+Tech:
+- Route Handlers under src/app/api/
+- Prisma for all database access
+- Zod for request validation
+- Pusher for realtime event emission
+- Midtrans SDK for QRIS
 
 Follow:
 - 05_DATABASE_SCHEMA.md
@@ -166,9 +177,11 @@ Follow:
 - 12_AI_CODING_RULES.md
 
 Important:
-- Backend must recalculate totals.
-- Stock only decreases after payment paid.
+- Backend MUST recalculate totals (never trust frontend).
+- Stock only decreases after payment status = paid.
 - Store price snapshots in order_items.
+- Validate Midtrans webhook signature.
+- Wrap payment processing in Prisma transactions.
 ```
 
 ## Prompt 8 — Continue Safely
@@ -182,4 +195,5 @@ Before coding:
 5. Do not rewrite working code unless necessary.
 6. Keep changes small and focused.
 7. Explain what files were changed.
+8. Never create Laravel, PHP, or separate backend files.
 ```

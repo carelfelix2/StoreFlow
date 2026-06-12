@@ -1,77 +1,56 @@
 # Tech Stack
 
+## Full Stack (Next.js Monolith)
+
+- **Next.js 15** — App Router for both frontend pages and backend API
+- **TypeScript** — Strict mode throughout
+- **Tailwind CSS** — Utility-first CSS with v4
+- **shadcn/ui** — Headless UI primitives via `@base-ui/react`
+- **Lucide React** — Icon library
+
+## Backend (within Next.js)
+
+- **Next.js Route Handlers** — REST API endpoints under `src/app/api/`
+- **Server Actions** — For form mutations where appropriate (product create/edit, settings)
+- **Prisma ORM** — Type-safe database access, migrations, and seeding
+- **PostgreSQL** — Primary database
+- **Auth.js / NextAuth v5** — Authentication with credentials provider + role support
+- **Zod** — Request validation for both Route Handlers and Server Actions
+
 ## Frontend
-- Next.js 15
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Lucide React
-- React Hook Form
-- Zod
-- Zustand
-- TanStack Table
-- TanStack Query atau SWR
 
-## Backend
-Pilihan utama:
-- Laravel API
-
-Alternatif fullstack:
-- Next.js API Routes / Server Actions
-
-Untuk project ini, rekomendasi:
-- Frontend: Next.js
-- Backend: Laravel API
-- Database: PostgreSQL atau MySQL
-
-## Database
-Rekomendasi:
-- PostgreSQL jika ingin arah SaaS modern
-- MySQL jika ingin mudah deploy di hosting/cPanel
+- **React 19** — with Server Components by default
+- **React Hook Form** — Form state management for client components
+- **Zustand** — Local UI state (cart, sidebar, active order)
+- **TanStack Query** — Server-state management, caching, mutations
+- **TanStack Table** — Data tables with sorting and pagination
 
 ## Realtime
-Pilihan:
-- Laravel Reverb
-- Pusher
-- Socket.io
 
-Rekomendasi awal:
-- Pusher untuk cepat
-- Laravel Reverb jika backend Laravel dan ingin self-host
+- **Pusher** — Managed WebSocket for MVP (zero-config)
+- **Socket.io** — Alternative self-hosted option for production
 
 ## Payment Gateway
-Untuk QRIS:
-- Midtrans
-- Xendit
-- Duitku
 
-Rekomendasi awal:
-- Midtrans karena dokumentasi Indonesia cukup familiar
+- **Midtrans** — QRIS and payment processing
+  - Sandbox for development
+  - Production for live
 
 ## Printer
-- Thermal printer 80mm
-- ESC/POS
-- Untuk MVP: browser print dulu
-- Untuk versi lanjut: local print service / QZ Tray / node-thermal-printer
+
+- **Thermal printer 80mm**
+- **ESC/POS** protocol
+- **MVP:** Browser `window.print()` with thermal CSS
+- **Production:** QZ Tray or local print service
 
 ## Deployment
-Frontend:
-- Vercel
 
-Backend:
-- VPS
-- Railway
-- Render
-- DigitalOcean
-- Niagahoster VPS
-
-Database:
-- Supabase PostgreSQL
-- Neon PostgreSQL
-- VPS Database
-- MySQL hosting
+- **Vercel** — Frontend + API Routes (serverless/edge)
+- **PostgreSQL:** Supabase, Neon, or Railway
+- **Pusher** — Managed realtime service
 
 ## Design System
+
 - Primary color: Emerald/Green
 - Background: White / Gray 50
 - Text: Gray 900
@@ -81,8 +60,21 @@ Database:
 - Info: Blue
 
 ## UI Direction
-Bukan admin panel berat. UI harus seperti POS modern:
+
+Not a heavy admin panel. UI should be like modern POS:
 - Square POS
 - Shopify POS
-- Kasir Pintar yang lebih clean
-- GoFood style untuk input order HP
+- Kasir Pintar (cleaner version)
+- GoFood style for staff order input on mobile
+
+## Why Full Next.js (No Separate Laravel Backend)?
+
+| Factor | Decision |
+|--------|----------|
+| **Simplicity** | Single project, single deployment, single language (TypeScript) |
+| **Type Safety** | End-to-end types from database (Prisma) to frontend (React) |
+| **Deployment** | Vercel handles both frontend and API routes seamlessly |
+| **Auth** | Auth.js v5 is Next.js-native, simpler than cross-domain Sanctum tokens |
+| **Cost** | No separate VPS needed for API server during MVP |
+| **Team** | Single TypeScript codebase — easier for one developer |
+| **Realtime** | Pusher SDK works from both Route Handlers (server) and React (client) |

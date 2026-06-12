@@ -1,9 +1,11 @@
 # Development Roadmap
 
 ## Phase 0 — Setup Project
-- Setup Next.js
+- Setup Next.js 15 with TypeScript
 - Setup Tailwind CSS
-- Setup shadcn/ui
+- Setup shadcn/ui (Emerald primary)
+- Setup Prisma with PostgreSQL
+- Setup Auth.js v5
 - Setup auth layout
 - Setup dashboard layout
 - Setup API client
@@ -11,16 +13,17 @@
 - Setup Git repository
 
 ## Phase 1 — Auth and Roles
-- Login page
+- Login page (credentials provider via Auth.js)
 - Logout
-- Auth middleware
+- Auth middleware (Next.js proxy.ts)
 - Role redirect
 - Owner/Kasir/Staff access
 - Protected routes
+- Session hydration via AuthProvider
 
 ## Phase 2 — Product and Category
-- Category CRUD
-- Product CRUD
+- Category CRUD (Route Handlers + Prisma)
+- Product CRUD (Route Handlers + Prisma)
 - Product unit CRUD
 - Search product
 - Low stock indicator
@@ -32,24 +35,25 @@
 - Category chips
 - Product card
 - Plus/minus qty
-- Cart summary
+- Cart summary (Zustand)
 - Submit order
 - Success page
 
 ## Phase 4 — Cashier Order Queue
-- Realtime order queue
+- Realtime order queue (Pusher)
 - Order detail panel
 - Review order
 - Edit item qty
 - Remove item
 - Approve order
 - Cancel order
+- Server: order status state machine via Route Handlers
 
 ## Phase 5 — Payment
-- Cash payment
-- QRIS payment
-- Payment status
-- Webhook handler
+- Cash payment (Route Handler + Prisma transaction)
+- QRIS payment (Route Handler + Midtrans API)
+- Payment status polling
+- Webhook handler (`POST /api/payments/webhook` with Midtrans signature validation)
 - Manual payment fallback
 - Payment logs
 
@@ -61,8 +65,8 @@
 - Thermal CSS
 
 ## Phase 7 — Stock
-- Stock movement
-- Auto reduce stock after paid
+- Stock movement tracking
+- Auto reduce stock after paid (Prisma transaction)
 - Stock adjustment
 - Stock in
 - Low stock alert
@@ -77,7 +81,7 @@
 
 ## Phase 9 — Customer Display
 - Fullscreen display
-- Current order display
+- Current order display (via Pusher)
 - QRIS display
 - Payment success display
 - Device token
