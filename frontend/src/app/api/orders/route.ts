@@ -30,7 +30,7 @@ import * as orderService from "@/server/db/services/order-service";
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireRole(["owner", "cashier"]);
+    const user = await requireRole(["owner", "cashier", "staff"]);
 
     const { searchParams } = request.nextUrl;
     const rawQuery = Object.fromEntries(searchParams.entries());
@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
       status: query.status,
       page: query.page,
       per_page: query.per_page,
+      // Staff users can only see their own orders
+      created_by: user.role === "staff" ? user.id : undefined,
     });
 
     return apiPaginated(

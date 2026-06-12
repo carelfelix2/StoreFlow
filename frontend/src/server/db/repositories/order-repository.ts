@@ -96,14 +96,19 @@ export async function listOrders(
     status?: string[];
     page?: number;
     per_page?: number;
+    created_by?: string;
   } = {}
 ) {
-  const { status, page = 1, per_page = 20 } = filters;
+  const { status, page = 1, per_page = 20, created_by } = filters;
 
   const where: Prisma.OrderWhereInput = {};
 
   if (status && status.length > 0) {
     where.status = { in: status as OrderStatus[] };
+  }
+
+  if (created_by) {
+    where.created_by = created_by;
   }
 
   const [data, total] = await Promise.all([

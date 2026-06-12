@@ -25,7 +25,7 @@ const ROLE_ROUTE_MAP: Record<string, string[]> = {
   "/settings": ["owner"],
   "/cashier": ["owner", "cashier"],
   "/staff/order": ["owner", "cashier", "staff"],
-  "/staff/order-success": ["owner", "cashier", "staff"],
+  "/staff/history": ["owner", "cashier", "staff"],
 };
 
 /**

@@ -41,6 +41,7 @@ const STATUS_TABS: StatusTab[] = [
   { key: "submitted", label: "Menunggu", status: "submitted" },
   { key: "reviewing", label: "Diproses", status: "reviewing" },
   { key: "approved", label: "Disetujui", status: "approved" },
+  { key: "completed", label: "Selesai", status: "paid,printed,completed" },
   { key: "cancelled", label: "Dibatalkan", status: "cancelled" },
 ];
 
@@ -498,6 +499,32 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
                 Cetak Struk
               </Button>
             </>
+          )}
+
+          {order.status === "printed" && (
+            <>
+              <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3 text-center">
+                <p className="text-sm font-medium text-indigo-700">
+                  Struk telah dicetak
+                </p>
+              </div>
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={handlePrintReceipt}
+              >
+                <Printer className="h-4 w-4" />
+                Cetak Ulang Struk
+              </Button>
+            </>
+          )}
+
+          {order.status === "completed" && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
+              <p className="text-sm font-medium text-green-700">
+                Pesanan telah selesai
+              </p>
+            </div>
           )}
 
           {order.status === "cancelled" && (

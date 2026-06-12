@@ -3,8 +3,8 @@
 // Client-side functions for order API calls.
 // =============================================================================
 
-import { apiPost, apiGet, apiPatch } from "@/lib/api";
-import type { ApiResponse, ApiPaginatedResponse } from "@/lib/api";
+import api, { apiPost, apiGet, apiPatch } from "@/lib/api";
+import type { ApiPaginatedResponse } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -90,8 +90,7 @@ export interface OrderQueryParams {
 export async function createOrder(
   data: CreateOrderInput
 ): Promise<OrderResponse> {
-  const response = await apiPost<ApiResponse<OrderResponse>>("/api/orders", data);
-  return response.data;
+  return apiPost<OrderResponse>("/orders", data);
 }
 
 /**
@@ -101,8 +100,7 @@ export async function createOrder(
 export async function getOrderById(
   id: string
 ): Promise<OrderResponse> {
-  const response = await apiGet<ApiResponse<OrderResponse>>(`/api/orders/${id}`);
-  return response.data;
+  return apiGet<OrderResponse>(`/orders/${id}`);
 }
 
 /**
@@ -118,9 +116,21 @@ export async function listOrders(
   if (params.per_page) searchParams.set("per_page", String(params.per_page));
 
   const query = searchParams.toString();
-  const url = `/api/orders${query ? `?${query}` : ""}`;
-  const response = await apiGet<ApiPaginatedResponse<OrderResponse>>(url);
-  return { data: response.data, meta: response.meta! };
+  const url = `/orders${query ? `?${query}` : ""}`;
+
+  // Use raw axios (not apiGet) because apiGet strips the outer envelope
+  // and we need both the data array AND the meta from the paginated response.
+  const response = await api.get<ApiPaginatedResponse<OrderResponse>>(url);
+  const body = response.data;
+  return {
+    data: body.data,
+    meta: {
+      current_page: body.meta?.current_page ?? 1,
+      per_page: body.meta?.per_page ?? 20,
+      total: body.meta?.total ?? 0,
+      last_page: body.meta?.last_page ?? 1,
+    },
+  };
 }
 
 /**
@@ -130,8 +140,7 @@ export async function listOrders(
 export async function reviewOrder(
   id: string
 ): Promise<OrderResponse> {
-  const response = await apiPatch<ApiResponse<OrderResponse>>(`/api/orders/${id}/review`);
-  return response.data;
+  return apiPatch<OrderResponse>(`/orders/${id}/review`);
 }
 
 /**
@@ -141,8 +150,7 @@ export async function reviewOrder(
 export async function approveOrder(
   id: string
 ): Promise<OrderResponse> {
-  const response = await apiPatch<ApiResponse<OrderResponse>>(`/api/orders/${id}/approve`);
-  return response.data;
+  return apiPatch<OrderResponse>(`/orders/${id}/approve`);
 }
 
 /**
@@ -152,8 +160,7 @@ export async function approveOrder(
 export async function cancelOrder(
   id: string
 ): Promise<OrderResponse> {
-  const response = await apiPatch<ApiResponse<OrderResponse>>(`/api/orders/${id}/cancel`);
-  return response.data;
+  return apiPatch<OrderResponse>(`/orders/${id}/cancel`);
 }
 
 // ---------------------------------------------------------------------------
@@ -215,8 +222,7 @@ export interface ReceiptResponse {
 export async function getReceipt(
   id: string
 ): Promise<ReceiptResponse> {
-  const response = await apiGet<ApiResponse<ReceiptResponse>>(`/api/orders/${id}/receipt`);
-  return response.data;
+  return apiGet<ReceiptResponse>(`/orders/${id}/receipt`);
 }
 
 /**
@@ -226,8 +232,7 @@ export async function getReceipt(
 export async function markPrinted(
   id: string
 ): Promise<ReceiptResponse> {
-  const response = await apiPatch<ApiResponse<ReceiptResponse>>(`/api/orders/${id}/printed`);
-  return response.data;
+  return apiPatch<ReceiptResponse>(`/orders/${id}/printed`);
 }
 
 // ---------------------------------------------------------------------------
@@ -269,10 +274,9 @@ export interface PaymentStatusResponse {
 export async function initiateQrisPayment(
   id: string
 ): Promise<QrisPaymentResponse> {
-  const response = await apiPost<ApiResponse<QrisPaymentResponse>>(
-    `/api/orders/${id}/payments/qris`
+  return apiPost<QrisPaymentResponse>(
+    `/orders/${id}/payments/qris`
   );
-  return response.data;
 }
 
 /**
@@ -282,10 +286,9 @@ export async function initiateQrisPayment(
 export async function getPaymentStatus(
   id: string
 ): Promise<PaymentStatusResponse> {
-  const response = await apiGet<ApiResponse<PaymentStatusResponse>>(
-    `/api/payments/${id}/status`
+  return apiGet<PaymentStatusResponse>(
+    `/payments/${id}/status`
   );
-  return response.data;
 }
 
 /**
@@ -295,10 +298,9 @@ export async function getPaymentStatus(
 export async function confirmMockPaid(
   id: string
 ): Promise<OrderResponse> {
-  const response = await apiPost<ApiResponse<OrderResponse>>(
-    `/api/payments/${id}/mock-paid`
+  return apiPost<OrderResponse>(
+    `/payments/${id}/mock-paid`
   );
-  return response.data;
 }
 
 /**
@@ -309,9 +311,8 @@ export async function processCashPayment(
   id: string,
   data: { paid_amount: number }
 ): Promise<OrderResponse> {
-  const response = await apiPost<ApiResponse<OrderResponse>>(
-    `/api/orders/${id}/payments/cash`,
+  return apiPost<OrderResponse>(
+    `/orders/${id}/payments/cash`,
     data
   );
-  return response.data;
 }

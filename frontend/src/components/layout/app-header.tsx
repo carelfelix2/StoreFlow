@@ -52,8 +52,8 @@ export function AppHeader() {
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={
-            <Button variant="ghost" className="flex items-center gap-2" type="button">
+          render={(props) => (
+            <Button variant="ghost" className="flex items-center gap-2" type="button" {...props}>
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="text-xs">{initials}</AvatarFallback>
               </Avatar>
@@ -64,7 +64,7 @@ export function AppHeader() {
                 </div>
               </div>
             </Button>
-          }
+          )}
         />
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem>

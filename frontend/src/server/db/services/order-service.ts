@@ -203,6 +203,7 @@ export async function listOrders(
     status?: string[];
     page?: number;
     per_page?: number;
+    created_by?: string;
   } = {}
 ) {
   const result = await orderRepository.listOrders(filters);

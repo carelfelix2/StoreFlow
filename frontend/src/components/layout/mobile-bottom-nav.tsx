@@ -7,7 +7,7 @@ import { ClipboardList, History } from "lucide-react";
 
 const navItems = [
   { href: "/staff/order", label: "Pesanan", icon: ClipboardList },
-  { href: "/staff/order-success", label: "Riwayat", icon: History },
+  { href: "/staff/history", label: "Riwayat", icon: History },
 ];
 
 export function MobileBottomNav() {

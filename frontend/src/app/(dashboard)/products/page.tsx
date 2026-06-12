@@ -130,7 +130,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("true");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState(1);
 
