@@ -20,12 +20,12 @@ export function TopProductsWidget({ products }: TopProductsWidgetProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            Produk Terlaris (7 Hari)
+            Produk Terlaris Hari Ini
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-8">
-            Belum ada penjualan
+            Belum ada penjualan hari ini
           </p>
         </CardContent>
       </Card>
@@ -38,7 +38,7 @@ export function TopProductsWidget({ products }: TopProductsWidgetProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">
-          Produk Terlaris (7 Hari)
+          Produk Terlaris Hari Ini
         </CardTitle>
         <Trophy className="h-4 w-4 text-amber-500" />
       </CardHeader>

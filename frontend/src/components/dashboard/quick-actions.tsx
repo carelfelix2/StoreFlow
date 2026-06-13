@@ -8,46 +8,54 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ShoppingCart,
   Package,
-  ClipboardList,
-  Users,
-  TrendingUp,
+  UserPlus,
+  Eye,
+  FileBarChart,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 
 const quickActions = [
   {
-    label: "Kasir",
-    description: "Proses pesanan baru",
-    href: "/cashier",
-    icon: ShoppingCart,
+    label: "Tambah Produk",
+    description: "Buat produk baru",
+    href: "/products/new",
+    icon: Package,
     color: "text-emerald-600",
     bgColor: "bg-emerald-50 hover:bg-emerald-100",
   },
   {
-    label: "Produk",
-    description: "Kelola produk & stok",
-    href: "/products",
-    icon: Package,
+    label: "Buat User",
+    description: "Tambah staff atau kasir",
+    href: "/users",
+    icon: UserPlus,
     color: "text-blue-600",
     bgColor: "bg-blue-50 hover:bg-blue-100",
   },
   {
-    label: "Stok",
-    description: "Pantau & tambah stok",
-    href: "/stock",
-    icon: ClipboardList,
+    label: "Lihat Kasir",
+    description: "Pantau transaksi kasir",
+    href: "/cashier",
+    icon: Eye,
     color: "text-violet-600",
     bgColor: "bg-violet-50 hover:bg-violet-100",
   },
   {
-    label: "Laporan",
-    description: "Lihat laporan penjualan",
+    label: "Lihat Laporan",
+    description: "Analisa penjualan",
     href: "/reports",
-    icon: TrendingUp,
+    icon: FileBarChart,
     color: "text-amber-600",
     bgColor: "bg-amber-50 hover:bg-amber-100",
+  },
+  {
+    label: "Backup Data",
+    description: "Cadangkan database",
+    href: "/settings?tab=backup",
+    icon: Database,
+    color: "text-rose-600",
+    bgColor: "bg-rose-50 hover:bg-rose-100",
   },
 ];
 

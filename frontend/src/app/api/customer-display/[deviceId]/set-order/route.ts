@@ -5,7 +5,7 @@
 
 import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth-helpers";
-import { apiSuccess, handleApiError } from "@/lib/api-response";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api-response";
 import { setDisplayState } from "@/server/customer-display/display-state";
 import * as orderRepository from "@/server/db/repositories/order-repository";
 
@@ -31,13 +31,13 @@ export async function POST(
     const { order_id } = body;
 
     if (!order_id || typeof order_id !== "string") {
-      return apiSuccess(null, "order_id is required");
+      return apiError("order_id is required", 400);
     }
 
     // Verify order exists
     const order = await orderRepository.findById(order_id);
     if (!order) {
-      return apiSuccess(null, "Order not found");
+      return apiError("Order not found", 404);
     }
 
     // Derive display state from order status

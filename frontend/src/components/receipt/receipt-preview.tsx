@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReceiptResponse } from "@/lib/api/orders";
 import { formatCurrency } from "@/lib/format-currency";
 import { format } from "date-fns";
@@ -46,6 +46,7 @@ export function ReceiptPreview({
   isPrinting,
 }: ReceiptPreviewProps) {
   const printFrameRef = useRef<HTMLIFrameElement>(null);
+  const isMountedRef = useRef(true);
 
   const handlePrint = useCallback(() => {
     // Create a hidden iframe for printing
@@ -335,16 +336,27 @@ export function ReceiptPreview({
 
     // Wait for content to render, then print
     setTimeout(() => {
+      if (!isMountedRef.current) return;
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
 
       // After print dialog closes, notify parent
       // Use a small delay since window.print() is blocking in some browsers
       setTimeout(() => {
-        onPrintSuccess();
+        if (isMountedRef.current) {
+          onPrintSuccess();
+        }
       }, 500);
     }, 300);
   }, [receipt, onPrintSuccess]);
+
+  // Track mounted state for race condition safety
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Auto-print when component mounts
   useEffect(() => {
@@ -354,7 +366,7 @@ export function ReceiptPreview({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handlePrint]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

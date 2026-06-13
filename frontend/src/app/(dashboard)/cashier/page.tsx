@@ -752,6 +752,7 @@ export default function CashierPage() {
   const handlePaymentSuccess = useCallback(() => {
     setPaymentOrder(null);
     setQrisOrder(null);
+    setSelectedOrder(null);
     refetch();
   }, [refetch]);
 
@@ -773,6 +774,7 @@ export default function CashierPage() {
       setIsPrinting(false);
       setReceiptPreviewOpen(false);
       setReceiptOrderId(null);
+      setSelectedOrder(null);
     }
   }, [receiptOrderId, markPrintedMutation, refetch]);
 

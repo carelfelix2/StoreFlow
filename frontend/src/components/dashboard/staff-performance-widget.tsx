@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format-currency";
-import { User, ShoppingCart } from "lucide-react";
+import { User, ShoppingCart, ArrowUpRight } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
 
 interface StaffPerformanceWidgetProps {
@@ -62,9 +62,15 @@ export function StaffPerformanceWidget({ staff }: StaffPerformanceWidgetProps) {
                 <span className="font-semibold">{s.order_count}</span>
                 <span className="text-xs text-muted-foreground">pesanan</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formatCurrency(s.total_sales)}
+              <p className="text-xs text-muted-foreground mt-0.5" title="Total nilai pesanan dibuat">
+                {formatCurrency(s.total_submitted)}
               </p>
+              {s.total_sales > 0 && (
+                <p className="text-[11px] text-green-600 mt-0.5 inline-flex items-center gap-0.5">
+                  <ArrowUpRight className="h-3 w-3" />
+                  {formatCurrency(s.total_sales)} lunas
+                </p>
+              )}
             </div>
           </div>
         ))}

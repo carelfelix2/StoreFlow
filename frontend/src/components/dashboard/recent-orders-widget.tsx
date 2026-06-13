@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format-currency";
 import { timeAgo } from "@/lib/format-date";
-import { Clock, Banknote, QrCode } from "lucide-react";
+import { Clock, Banknote, QrCode, User } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
 
 interface RecentOrdersWidgetProps {
@@ -51,7 +51,7 @@ export function RecentOrdersWidget({ orders }: RecentOrdersWidgetProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-8">
-            Belum ada pesanan hari ini
+            Belum ada pesanan
           </p>
         </CardContent>
       </Card>
@@ -60,8 +60,9 @@ export function RecentOrdersWidget({ orders }: RecentOrdersWidgetProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">Pesanan Terbaru</CardTitle>
+        <span className="text-xs text-muted-foreground">10 terakhir</span>
       </CardHeader>
       <CardContent className="space-y-3">
         {orders.map((order) => (
@@ -81,10 +82,19 @@ export function RecentOrdersWidget({ orders }: RecentOrdersWidgetProps) {
                   {orderStatusLabels[order.status] ?? order.status}
                 </Badge>
               </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                 <span>{order.staff_name}</span>
                 <span>•</span>
                 <span>{order.items_count} item</span>
+                {order.customer_name && (
+                  <>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {order.customer_name}
+                    </span>
+                  </>
+                )}
                 {order.payment_method && (
                   <>
                     <span>•</span>

@@ -10,9 +10,13 @@ import type { OrderStatus } from "@/generated/prisma/client";
 export interface DashboardData {
   kpis: {
     sales_today: number;
+    sales_this_month: number;
     orders_today: number;
+    pending_orders: number;
     active_products: number;
     low_stock_products: number;
+    cash_total_today: number;
+    qris_total_today: number;
   };
   recent_orders: Array<{
     id: string;
@@ -21,6 +25,7 @@ export interface DashboardData {
     grand_total: number;
     items_count: number;
     staff_name: string;
+    customer_name: string | null;
     payment_method: string | null;
     created_at: string;
   }>;
@@ -29,6 +34,7 @@ export interface DashboardData {
     name: string;
     role: string;
     order_count: number;
+    total_submitted: number;
     total_sales: number;
   }>;
   sales_trend: Array<{
@@ -65,7 +71,7 @@ export interface DashboardData {
  * Compute Jakarta calendar day boundaries.
  * Jakarta is UTC+7.
  */
-function getJakartaDayRange() {
+function getJakartaDateRange() {
   const jakartaOffset = 7 * 60 * 60 * 1000;
   const now = new Date();
   const todayJakarta = new Date(
@@ -74,61 +80,122 @@ function getJakartaDayRange() {
   );
   const tomorrowJakarta = new Date(todayJakarta.getTime() + 86400000);
   const sevenDaysAgo = new Date(todayJakarta.getTime() - 6 * 86400000);
-  return { todayJakarta, tomorrowJakarta, sevenDaysAgo };
+  // Month start: first day of current month in Jakarta time
+  const monthStartJakarta = new Date(
+    Date.UTC(todayJakarta.getUTCFullYear(), todayJakarta.getUTCMonth(), 1) -
+      jakartaOffset
+  );
+  return { todayJakarta, tomorrowJakarta, sevenDaysAgo, monthStartJakarta };
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const { todayJakarta, tomorrowJakarta, sevenDaysAgo } = getJakartaDayRange();
+  const { todayJakarta, tomorrowJakarta, sevenDaysAgo, monthStartJakarta } =
+    getJakartaDateRange();
 
   const paidStatuses: OrderStatus[] = ["paid", "printed", "completed"];
+  const pendingStatuses: OrderStatus[] = [
+    "draft",
+    "submitted",
+    "reviewing",
+    "approved",
+    "waiting_payment",
+  ];
 
   const [
     kpis,
     recentOrders,
     staffPerformance,
     salesTrend,
-    topProducts,
+    topProductsToday,
     lowStockProducts,
     paymentBreakdown,
   ] = await Promise.all([
     // ---- KPIs ----
     (async () => {
-      const [salesResult, ordersResult, activeProductsResult] =
-        await Promise.all([
-          prisma.order.aggregate({
-            _sum: { grand_total: true },
-            where: {
-              status: { in: paidStatuses },
-              paid_at: { gte: todayJakarta, lt: tomorrowJakarta },
-            },
-          }),
-          prisma.order.count({
-            where: {
-              created_at: { gte: todayJakarta, lt: tomorrowJakarta },
-            },
-          }),
-          prisma.product.count({
-            where: { is_active: true },
-          }),
-        ]);
+      const [
+        salesTodayResult,
+        salesThisMonthResult,
+        ordersTodayResult,
+        pendingOrdersResult,
+        activeProductsResult,
+        lowStockCountResult,
+      ] = await Promise.all([
+        // Sales today (paid)
+        prisma.order.aggregate({
+          _sum: { grand_total: true },
+          where: {
+            status: { in: paidStatuses },
+            paid_at: { gte: todayJakarta, lt: tomorrowJakarta },
+          },
+        }),
+        // Sales this month (paid)
+        prisma.order.aggregate({
+          _sum: { grand_total: true },
+          where: {
+            status: { in: paidStatuses },
+            paid_at: { gte: monthStartJakarta, lt: tomorrowJakarta },
+          },
+        }),
+        // Orders today (all statuses)
+        prisma.order.count({
+          where: {
+            created_at: { gte: todayJakarta, lt: tomorrowJakarta },
+          },
+        }),
+        // Pending orders (non-terminal statuses)
+        prisma.order.count({
+          where: {
+            status: { in: pendingStatuses },
+          },
+        }),
+        // Active products
+        prisma.product.count({
+          where: { is_active: true },
+        }),
+        // Low stock count
+        prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+          `SELECT COUNT(*)::bigint as count FROM products WHERE is_active = true AND stock <= min_stock`
+        ),
+      ]);
 
-      const lowStockResult = await prisma.$queryRawUnsafe<
-        Array<{ count: bigint }>
+      // Cash & QRIS totals today
+      const paymentToday = await prisma.$queryRawUnsafe<
+        Array<{ method: string; total: string }>
       >(
-        `SELECT COUNT(*)::bigint as count FROM products WHERE is_active = true AND stock <= min_stock`
+        `SELECT
+          p.method::text,
+          COALESCE(SUM(p.amount), 0)::text as total
+        FROM payments p
+        WHERE p.status = 'paid'
+          AND p.paid_at >= $1::timestamptz
+          AND p.paid_at < $2::timestamptz
+        GROUP BY p.method`,
+        todayJakarta,
+        tomorrowJakarta
+      );
+
+      const cashTotal = Number(
+        paymentToday.find((p) => p.method === "cash")?.total ?? 0
+      );
+      const qrisTotal = Number(
+        paymentToday.find((p) => p.method === "qris")?.total ?? 0
       );
 
       return {
-        sales_today: Number(salesResult._sum?.grand_total ?? 0),
-        orders_today: ordersResult,
+        sales_today: Number(salesTodayResult._sum?.grand_total ?? 0),
+        sales_this_month: Number(salesThisMonthResult._sum?.grand_total ?? 0),
+        orders_today: ordersTodayResult,
+        pending_orders: pendingOrdersResult,
         active_products: activeProductsResult,
-        low_stock_products: Number(lowStockResult[0]?.count ?? 0),
+        low_stock_products: Number(lowStockCountResult[0]?.count ?? 0),
+        cash_total_today: cashTotal,
+        qris_total_today: qrisTotal,
       };
     })(),
 
-    // ---- Recent Orders ----
+    // ---- Recent Orders (last 10) ----
     prisma.order.findMany({
-      take: 5,
+      take: 10,
       orderBy: { created_at: "desc" },
       include: {
         items: { orderBy: { created_at: "asc" } },
@@ -137,19 +204,21 @@ export async function getDashboardData(): Promise<DashboardData> {
       },
     }),
 
-    // ---- Staff Performance ----
+    // ---- Staff Performance (today - includes all orders, not just paid) ----
     prisma.$queryRawUnsafe<
       Array<{
         id: string;
         name: string;
         role: string;
         order_count: bigint;
+        total_submitted: string;
         total_sales: string;
       }>
     >(
       `SELECT
         u.id, u.name, u.role::text,
         COUNT(o.id) as order_count,
+        COALESCE(SUM(o.grand_total), 0)::text as total_submitted,
         COALESCE(SUM(CASE WHEN o.status IN ('paid','printed','completed') THEN o.grand_total ELSE 0 END), 0)::text as total_sales
       FROM users u
       LEFT JOIN orders o ON o.created_by = u.id
@@ -184,7 +253,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       todayJakarta
     ),
 
-    // ---- Top Selling Products (7 days) ----
+    // ---- Top 5 Products Today ----
     prisma.$queryRawUnsafe<
       Array<{
         product_id: string;
@@ -207,7 +276,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       GROUP BY p.id, p.name
       ORDER BY total_qty DESC
       LIMIT 5`,
-      sevenDaysAgo,
+      todayJakarta,
       tomorrowJakarta
     ),
 
@@ -262,6 +331,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       grand_total: Number(o.grand_total),
       items_count: o.items.length,
       staff_name: o.staff?.name ?? "Unknown",
+      customer_name: o.customer_name ?? null,
       payment_method: o.payments[0]?.method ?? null,
       created_at: o.created_at.toISOString(),
     })),
@@ -270,6 +340,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       name: s.name,
       role: s.role,
       order_count: Number(s.order_count),
+      total_submitted: Number(s.total_submitted),
       total_sales: Number(s.total_sales),
     })),
     sales_trend: salesTrend.map((d) => ({
@@ -277,7 +348,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       total_sales: Number(d.total_sales),
       order_count: Number(d.order_count),
     })),
-    top_products: topProducts.map((p) => ({
+    top_products: topProductsToday.map((p) => ({
       product_id: p.product_id,
       product_name: p.product_name,
       total_qty: Number(p.total_qty),
