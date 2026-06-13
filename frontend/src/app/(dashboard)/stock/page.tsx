@@ -163,12 +163,12 @@ export default function StockPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Stok</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Stok</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Pantau stok dan riwayat pergerakan stok.
           </p>
         </div>
@@ -192,7 +192,7 @@ export default function StockPage() {
 
       {/* Stock Table */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <CardTitle className="text-sm font-medium">
             Daftar Stok Produk
             {meta && (
@@ -201,24 +201,24 @@ export default function StockPage() {
               </span>
             )}
           </CardTitle>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Cari produk..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-8"
+              className="pl-8 h-9"
             />
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Produk</TableHead>
                 <TableHead>Kategori</TableHead>
-                <TableHead>Stok</TableHead>
-                <TableHead>Min. Stok</TableHead>
+                <TableHead className="whitespace-nowrap">Stok</TableHead>
+                <TableHead className="whitespace-nowrap">Min. Stok</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -244,22 +244,22 @@ export default function StockPage() {
                   : products.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <Package className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div>
-                            <p className="font-medium">{product.name}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{product.name}</p>
                             {product.sku && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 SKU: {product.sku}
                               </p>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs whitespace-nowrap">
                         {product.category.name}
                       </TableCell>
-                      <TableCell className="font-mono">
+                      <TableCell className="font-mono whitespace-nowrap">
                         <span
                           className={
                             product.status === "out"
@@ -275,7 +275,7 @@ export default function StockPage() {
                           {product.base_unit}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {product.min_stock} {product.base_unit}
                       </TableCell>
                       <TableCell>
@@ -292,7 +292,7 @@ export default function StockPage() {
 
           {/* Pagination */}
           {meta && meta.last_page > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
               <p className="text-xs text-muted-foreground">
                 Halaman {meta.current_page} dari {meta.last_page}
               </p>
@@ -323,11 +323,11 @@ export default function StockPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4" />
+            <ArrowUpDown className="h-4 w-4 shrink-0" />
             Riwayat Pergerakan Stok
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <StockMovementsTable
             movements={movements}
             loading={movementsLoading}
@@ -335,7 +335,7 @@ export default function StockPage() {
 
           {/* Movements Pagination */}
           {movementsMeta && movementsMeta.last_page > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
               <p className="text-xs text-muted-foreground">
                 Halaman {movementsMeta.current_page} dari{" "}
                 {movementsMeta.last_page}

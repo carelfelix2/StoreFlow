@@ -103,6 +103,22 @@ export function useCancelOrder() {
   });
 }
 
+/**
+ * Void an order — transition from paid/printed/completed to voided.
+ * Owner only.
+ */
+export function useVoidOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.voidOrder(id),
+    onSuccess: (order) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(order.id) });
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Phase 6: Receipt & Print Hooks
 // ---------------------------------------------------------------------------

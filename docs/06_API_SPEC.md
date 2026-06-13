@@ -292,6 +292,41 @@ All responses follow a consistent format:
 { "success": false, "message": "Validation failed", "errors": { "email": ["Email sudah terdaftar"] } }
 ```
 
+## Admin / Owner Only
+
+### GET /api/admin/export/products
+### GET /api/admin/export/categories
+### GET /api/admin/export/users
+### GET /api/admin/export/orders
+### GET /api/admin/export/order-items
+### GET /api/admin/export/payments
+### GET /api/admin/export/stock-movements
+
+CSV export endpoints. All require `owner` role. Returns `Content-Disposition: attachment` with CSV.
+
+### GET /api/admin/audit?type=all&limit=50
+
+Query:
+- `type` — `"order_logs"`, `"payment_logs"`, `"stock_movements"`, `"all"` (default)
+- `limit` — max results (default 50)
+
+Returns structured audit data grouped by type. Owner only.
+
+### GET /api/admin/health-check
+
+Five integrity checks:
+1. Products with negative stock
+2. Orders paid without payment record
+3. Payments completed without `paid_at`
+4. Orphan stock movements (deleted product)
+5. Grand total mismatch (SUM items vs order grand_total)
+
+Returns status (`healthy`/`warning`/`issues_found`), per-check results, and issue list. Owner only.
+
+### PATCH /api/orders/[id]/void
+
+Void an order. Owner only. Valid statuses: `paid`, `printed`, `completed`. Sets status to `voided` and logs `ORDER_VOIDED`. Does NOT reverse payments or restore stock.
+
 ## Rate Limiting
 
 - Auth routes: 5 requests per minute

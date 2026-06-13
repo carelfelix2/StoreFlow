@@ -68,13 +68,14 @@ const allNavItems: NavItem[] = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
   const user = useAuthStore((s) => s.user);
 
   const visibleItems = allNavItems.filter(
     (item) => user && item.roles.includes(user.role)
   );
 
+  // Mobile overlay toggle button (visible when sidebar is closed)
   if (!sidebarOpen) {
     return (
       <Button
@@ -89,51 +90,70 @@ export function AppSidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r bg-sidebar">
-      <div className="flex h-14 items-center gap-2 px-4 font-semibold">
-        <ShoppingCart className="h-5 w-5 text-primary" />
-        <span className="text-sm">{APP_NAME}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-auto h-7 w-7"
-          onClick={toggleSidebar}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-      </div>
+    <>
+      {/* Mobile overlay backdrop - visible below lg breakpoint */}
+      <div
+        className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
 
-      <Separator />
+      {/* Sidebar panel */}
+      <aside className="fixed left-0 top-0 z-50 flex h-full w-64 flex-col border-r bg-sidebar shadow-xl lg:shadow-none">
+        <div className="flex h-14 items-center gap-2 px-4 font-semibold">
+          <ShoppingCart className="h-5 w-5 text-primary shrink-0" />
+          <span className="text-sm truncate">{APP_NAME}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-7 w-7 shrink-0"
+            onClick={toggleSidebar}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <ScrollArea className="flex-1 px-3 py-2">
-        <nav className="flex flex-col gap-1">
-          {visibleItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-2",
-                    isActive && "font-medium"
-                  )}
-                  size="sm"
+        <Separator />
+
+        <ScrollArea className="flex-1 px-3 py-2">
+          <nav className="flex flex-col gap-1">
+            {visibleItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => {
+                    // Close sidebar on mobile after navigation
+                    if (window.innerWidth < 1024) {
+                      setSidebarOpen(false);
+                    }
+                  }}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              </Link>
-            );
-          })}
-        </nav>
-      </ScrollArea>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-2",
+                      isActive && "font-medium"
+                    )}
+                    size="sm"
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
+          </nav>
+        </ScrollArea>
 
-      <Separator />
+        <Separator />
 
-      <div className="p-3 text-xs text-muted-foreground">
-        v0.1.0 &mdash; StoreFlow POS
-      </div>
-    </aside>
+        <div className="p-3 text-xs text-muted-foreground">
+          v0.1.0 &mdash; StoreFlow POS
+        </div>
+      </aside>
+    </>
   );
 }

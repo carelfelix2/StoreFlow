@@ -93,7 +93,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
+    <Card className="mx-auto w-full max-w-sm">
       <CardHeader className="text-center">
         <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
           <ShoppingCart className="h-6 w-6 text-primary-foreground" />
@@ -105,7 +105,7 @@ export default function LoginPage() {
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -123,6 +123,7 @@ export default function LoginPage() {
                       type="email"
                       placeholder="staff@felixsnack.com"
                       autoComplete="email"
+                      className="h-10"
                       {...field}
                     />
                   </FormControl>
@@ -142,6 +143,7 @@ export default function LoginPage() {
                       type="password"
                       placeholder="••••••••"
                       autoComplete="current-password"
+                      className="h-10"
                       {...field}
                     />
                   </FormControl>
@@ -150,7 +152,7 @@ export default function LoginPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-10" disabled={isLoading}>
               {isLoading ? "Memproses..." : "Masuk"}
             </Button>
           </form>

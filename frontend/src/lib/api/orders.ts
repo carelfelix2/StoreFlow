@@ -163,6 +163,17 @@ export async function cancelOrder(
   return apiPatch<OrderResponse>(`/orders/${id}/cancel`);
 }
 
+/**
+ * Void an order — transition from paid/printed/completed to voided.
+ * PATCH /api/orders/[id]/void
+ * Owner only.
+ */
+export async function voidOrder(
+  id: string
+): Promise<OrderResponse> {
+  return apiPatch<OrderResponse>(`/orders/${id}/void`);
+}
+
 // ---------------------------------------------------------------------------
 // Phase 6: Receipt & Print
 // ---------------------------------------------------------------------------

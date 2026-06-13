@@ -94,6 +94,15 @@
 - Toast notifications
 - UX testing with actual toko workflow
 
+## Phase 11 — Backup, Audit & Data Safety
+- CSV export endpoints for 7 entities (products, categories, users, orders, order_items, payments, stock_movements)
+- Audit view API (order logs, payment logs, stock movements)
+- Health check API with 5 integrity checks (negative stock, paid-without-payment, payment-without-paid_at, orphan stock movements, grand_total mismatch)
+- Safety confirmation dialogs (product deactivation, user deactivation, cancel order, void order)
+- Backup & Audit tab in Settings (owner-only)
+- Void order API endpoint (owner-only, voidable from paid/printed/completed)
+- Documentation
+
 ## Build Priority
 1. Product data
 2. Staff input order
@@ -104,3 +113,4 @@
 7. QRIS
 8. Report
 9. Customer display
+10. Data safety

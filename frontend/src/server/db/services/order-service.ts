@@ -341,6 +341,49 @@ export async function cancelOrder(
 }
 
 /**
+ * Void an order. Only owner can perform this action.
+ * Allowed from: paid, printed, completed
+ * This reverses the order status to voided without reversing payments or stock.
+ */
+export async function voidOrder(
+  orderId: string,
+  userId: string
+): Promise<OrderResponse> {
+  const order = await orderRepository.findById(orderId);
+
+  if (!order) {
+    throw new AuthError("Order not found", 404);
+  }
+
+  const voidableStatuses = ["paid", "printed", "completed"];
+  if (!voidableStatuses.includes(order.status)) {
+    throw new AuthError(
+      `Cannot void order in "${order.status}" status. Only paid, printed, or completed orders can be voided.`,
+      400
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await orderRepository.updateStatus(orderId, "voided", tx);
+
+    await orderRepository.createOrderLog(
+      {
+        order_id: orderId,
+        user_id: userId,
+        action: "ORDER_VOIDED",
+        old_value: { status: order.status },
+        new_value: { status: "voided" },
+      },
+      tx
+    );
+
+    return updated;
+  });
+
+  return toResponse(result);
+}
+
+/**
  * Create a new order from the staff cart.
  *
  * Business rules:

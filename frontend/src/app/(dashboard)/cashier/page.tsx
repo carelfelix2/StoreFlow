@@ -10,7 +10,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useOrders, useReviewOrder, useApproveOrder, useCancelOrder, useProcessCashPayment, useReceipt, useMarkPrinted } from "@/hooks/use-orders";
+import { useOrders, useReviewOrder, useApproveOrder, useCancelOrder, useVoidOrder, useProcessCashPayment, useReceipt, useMarkPrinted } from "@/hooks/use-orders";
 import { useSetDisplayOrder, useClearDisplay } from "@/hooks/use-customer-display";
 import type { OrderResponse, ReceiptResponse } from "@/lib/api/orders";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/constants";
@@ -25,6 +25,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { ReceiptPreview } from "@/components/receipt/receipt-preview";
 import { QrisPaymentDialog } from "@/components/payments/qris-payment-dialog";
 
@@ -286,6 +296,13 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
   const reviewMutation = useReviewOrder();
   const approveMutation = useApproveOrder();
   const cancelMutation = useCancelOrder();
+  const voidMutation = useVoidOrder();
+
+  // Cancel confirmation dialog
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  // Void confirmation dialog
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
 
   const handleReview = useCallback(async () => {
     if (!order) return;
@@ -309,16 +326,29 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
     }
   }, [order, approveMutation, onOpenChange]);
 
-  const handleCancel = useCallback(async () => {
+  const handleCancelConfirm = useCallback(async () => {
     if (!order) return;
     try {
       await cancelMutation.mutateAsync(order.id);
       toast.success(`Pesanan ${order.order_number} telah dibatalkan`);
+      setCancelDialogOpen(false);
       onOpenChange(false);
     } catch {
       toast.error("Gagal membatalkan pesanan");
     }
   }, [order, cancelMutation, onOpenChange]);
+
+  const handleVoidConfirm = useCallback(async () => {
+    if (!order) return;
+    try {
+      await voidMutation.mutateAsync(order.id);
+      toast.success(`Pesanan ${order.order_number} telah dibatalkan (void)`);
+      setVoidDialogOpen(false);
+      onOpenChange(false);
+    } catch {
+      toast.error("Gagal membatalkan pesanan");
+    }
+  }, [order, voidMutation, onOpenChange]);
 
   const handleCashPayment = useCallback(() => {
     if (!order) return;
@@ -342,10 +372,11 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
 
   const statusLabel = ORDER_STATUS_LABELS[order.status] ?? order.status;
   const statusColor = ORDER_STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-700";
-  const isPending = reviewMutation.isPending || approveMutation.isPending || cancelMutation.isPending;
+  const isPending = reviewMutation.isPending || approveMutation.isPending || cancelMutation.isPending || voidMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg flex flex-col">
         <SheetHeader className="px-4 pt-4 pb-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -453,7 +484,7 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
               <Button
                 variant="outline"
                 className="w-full text-destructive border-destructive hover:bg-destructive/10"
-                onClick={handleCancel}
+                onClick={() => setCancelDialogOpen(true)}
                 disabled={isPending}
               >
                 {cancelMutation.isPending ? "Membatalkan..." : "Batal"}
@@ -473,7 +504,7 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
               <Button
                 variant="outline"
                 className="w-full text-destructive border-destructive hover:bg-destructive/10"
-                onClick={handleCancel}
+                onClick={() => setCancelDialogOpen(true)}
                 disabled={isPending}
               >
                 {cancelMutation.isPending ? "Membatalkan..." : "Batal"}
@@ -516,6 +547,14 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
                 <Printer className="h-4 w-4" />
                 Cetak Struk
               </Button>
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => setVoidDialogOpen(true)}
+                disabled={isPending}
+              >
+                {voidMutation.isPending ? "Memproses..." : "Void Pesanan"}
+              </Button>
             </>
           )}
 
@@ -534,15 +573,33 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
                 <Printer className="h-4 w-4" />
                 Cetak Ulang Struk
               </Button>
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => setVoidDialogOpen(true)}
+                disabled={isPending}
+              >
+                {voidMutation.isPending ? "Memproses..." : "Void Pesanan"}
+              </Button>
             </>
           )}
 
           {order.status === "completed" && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
-              <p className="text-sm font-medium text-green-700">
-                Pesanan telah selesai
-              </p>
-            </div>
+            <>
+              <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
+                <p className="text-sm font-medium text-green-700">
+                  Pesanan telah selesai
+                </p>
+              </div>
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => setVoidDialogOpen(true)}
+                disabled={isPending}
+              >
+                {voidMutation.isPending ? "Memproses..." : "Void Pesanan"}
+              </Button>
+            </>
           )}
 
           {order.status === "cancelled" && (
@@ -555,6 +612,64 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* Cancel Confirmation Dialog */}
+    <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Batalkan Pesanan</AlertDialogTitle>
+          <AlertDialogDescription>
+            Apakah Anda yakin ingin membatalkan pesanan{" "}
+            <strong>{order?.order_number}</strong>?
+            <br />
+            Pesanan akan dibatalkan dan tidak dapat dilanjutkan. Tindakan ini
+            tidak dapat dibatalkan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Tutup</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={cancelMutation.isPending}
+            onClick={handleCancelConfirm}
+          >
+            {cancelMutation.isPending ? "Membatalkan..." : "Ya, Batalkan"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Void Confirmation Dialog */}
+    <AlertDialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Void Pesanan</AlertDialogTitle>
+          <AlertDialogDescription>
+            Apakah Anda yakin ingin void pesanan{" "}
+            <strong>{order?.order_number}</strong>?
+            <br />
+            Pesanan yang sudah dibayar akan ditandai sebagai void. Tindakan ini
+            tidak dapat dibatalkan.
+            <br />
+            <br />
+            <strong className="text-destructive">Perhatian:</strong> Void
+            pesanan tidak membatalkan pembayaran atau mengembalikan stok secara
+            otomatis. Lakukan rekonsiliasi manual jika diperlukan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Tutup</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={voidMutation.isPending}
+            onClick={handleVoidConfirm}
+          >
+            {voidMutation.isPending ? "Memproses..." : "Ya, Void"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
@@ -733,13 +848,13 @@ export default function CashierPage() {
   const totalPages = meta ? Math.ceil(meta.total / meta.per_page) : 1;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)] lg:max-h-[calc(100vh-8rem)] max-w-full">
       {/* Header */}
       <div className="shrink-0 space-y-3 mb-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">Antrian Pesanan</h1>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <ShoppingCart className="h-5 w-5 shrink-0" />
+            <h1 className="text-lg font-semibold truncate">Antrian Pesanan</h1>
           </div>
 
           {/* Phase 8: Customer Display Controls */}
@@ -777,15 +892,15 @@ export default function CashierPage() {
                 onClick={handleOpenCustomerDisplay}
                 className="gap-1.5"
               >
-                <Monitor className="h-4 w-4" />
-                Open Customer Display
+                <Monitor className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Open Customer Display</span>
               </Button>
             )}
           </div>
         </div>
 
         {/* Status Tabs */}
-        <div className="flex gap-1 overflow-x-auto pb-1">
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
           {STATUS_TABS.map((tab) => (
             <Button
               key={tab.key}
@@ -868,8 +983,8 @@ export default function CashierPage() {
 
       {/* Pagination */}
       {!isLoading && !isError && totalPages > 1 && (
-        <div className="shrink-0 flex items-center justify-between border-t pt-3 mt-3">
-          <p className="text-xs text-muted-foreground">
+        <div className="shrink-0 flex items-center justify-between border-t pt-3 mt-3 gap-2">
+          <p className="text-xs text-muted-foreground shrink-0">
             Halaman {meta?.current_page ?? 1} dari {totalPages}
           </p>
           <div className="flex items-center gap-1">

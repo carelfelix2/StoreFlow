@@ -190,14 +190,14 @@ function DateFilterBar({
   resolved,
 }: DateFilterProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-1.5 rounded-lg border bg-card p-1">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1 rounded-lg border bg-card p-1 overflow-x-auto">
         {PRESET_OPTIONS.map((opt) => (
           <Button
             key={opt.value}
             variant={preset === opt.value ? "default" : "ghost"}
             size="sm"
-            className="h-7 px-2.5 text-xs"
+            className="h-7 px-2 text-xs shrink-0"
             onClick={() => setPreset(opt.value)}
           >
             {opt.label}
@@ -207,26 +207,26 @@ function DateFilterBar({
 
       {preset === "custom" && (
         <>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="w-36 h-8 text-xs"
+              className="w-32 sm:w-36 h-8 text-xs"
             />
             <span className="text-muted-foreground text-xs">–</span>
             <Input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="w-36 h-8 text-xs"
+              className="w-32 sm:w-36 h-8 text-xs"
             />
           </div>
         </>
       )}
 
-      <p className="text-xs text-muted-foreground ml-auto">
+      <p className="text-xs text-muted-foreground sm:ml-auto">
         {formatDateShort(resolved.start_date)} – {formatDateShort(resolved.end_date)}
       </p>
     </div>
@@ -1062,10 +1062,10 @@ export default function ReportsPage() {
   }, [resolved, dateSuffix]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Laporan</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Laporan</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Ringkasan penjualan, produk, stok, dan pembayaran.
         </p>
       </div>
@@ -1082,13 +1082,15 @@ export default function ReportsPage() {
       />
 
       <Tabs defaultValue="ringkasan">
-        <TabsList variant="default">
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
-          <TabsTrigger value="produk">Produk</TabsTrigger>
-          <TabsTrigger value="stok">Stok</TabsTrigger>
-          <TabsTrigger value="pembayaran">Pembayaran</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList variant="default">
+            <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+            <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
+            <TabsTrigger value="produk">Produk</TabsTrigger>
+            <TabsTrigger value="stok">Stok</TabsTrigger>
+            <TabsTrigger value="pembayaran">Pembayaran</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="ringkasan" className="mt-4">
           <RingkasanTab resolved={resolved} onExport={exportSummaryCSV} />

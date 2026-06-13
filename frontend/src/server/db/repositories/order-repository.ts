@@ -311,6 +311,9 @@ export async function updateStatus(
     case "cancelled":
       updateData.cancelled_at = new Date();
       break;
+    case "voided":
+      updateData.cancelled_at = new Date();
+      break;
   }
 
   return client.order.update({

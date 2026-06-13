@@ -142,6 +142,10 @@ export default function ProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState<ProductResponse | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // Toggle active confirmation dialog
+  const [toggleTarget, setToggleTarget] = useState<ProductResponse | null>(null);
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
+
   // View detail
   const [detailProduct, setDetailProduct] = useState<ProductResponse | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -212,16 +216,22 @@ export default function ProductsPage() {
     }
   }, [deleteTarget, deleteProduct]);
 
-  const handleToggleActive = useCallback(
-    async (product: ProductResponse) => {
-      try {
-        await toggleActive.mutateAsync(product.id);
-      } catch {
-        // Error toast handled by hook
-      }
-    },
-    [toggleActive]
-  );
+  const handleToggleClick = useCallback((product: ProductResponse) => {
+    setToggleTarget(product);
+    setToggleDialogOpen(true);
+  }, []);
+
+  const handleToggleConfirm = useCallback(async () => {
+    if (!toggleTarget) return;
+    try {
+      await toggleActive.mutateAsync(toggleTarget.id);
+    } catch {
+      // Error toast handled by hook
+    } finally {
+      setToggleDialogOpen(false);
+      setToggleTarget(null);
+    }
+  }, [toggleTarget, toggleActive]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -268,16 +278,16 @@ export default function ProductsPage() {
   const totalItems = meta?.total ?? 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produk</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Produk</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Kelola produk, kategori, dan satuan.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {canMutate && (
             <>
               {/* Hidden file input for import */}
@@ -290,23 +300,25 @@ export default function ProductsPage() {
               />
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleImportClick}
                 disabled={importProducts.isPending}
               >
-                <Upload className="h-4 w-4 mr-1.5" />
+                <Upload className="h-4 w-4 mr-1" />
                 {importProducts.isPending ? "Mengimpor..." : "Import"}
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleExport}
                 disabled={exportProducts.isPending}
               >
-                <Download className="h-4 w-4 mr-1.5" />
+                <Download className="h-4 w-4 mr-1" />
                 {exportProducts.isPending ? "Mengekspor..." : "Export"}
               </Button>
-              <Button onClick={handleOpenCreate}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Tambah Produk
+              <Button size="sm" onClick={handleOpenCreate}>
+                <Plus className="h-4 w-4 mr-1" />
+                Tambah
               </Button>
             </>
           )}
@@ -314,16 +326,16 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Cari nama, SKU, atau barcode..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="pl-8 pr-8"
+            className="pl-8 pr-8 h-9"
           />
           {searchInput && (
             <button
@@ -340,7 +352,7 @@ export default function ProductsPage() {
         </Button>
 
         {/* Category filter */}
-        <div className="w-44">
+        <div className="w-40 sm:w-44">
           <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val ?? ""); setPage(1); }}>
             <SelectTrigger>
               <SelectValue placeholder="Semua Kategori" />
@@ -357,7 +369,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Status filter */}
-        <div className="w-36">
+        <div className="w-32 sm:w-36">
           <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val ?? ""); setPage(1); }}>
             <SelectTrigger>
               <SelectValue placeholder="Semua Status" />
@@ -379,13 +391,13 @@ export default function ProductsPage() {
           onClick={() => { setLowStockOnly((v) => !v); setPage(1); }}
           className="gap-1.5"
         >
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           Stok Menipis
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border bg-card">
+      {/* Table wrapper with horizontal scroll */}
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -537,7 +549,7 @@ export default function ProductsPage() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleToggleActive(product)}>
+                              <DropdownMenuItem onClick={() => handleToggleClick(product)}>
                                 {product.is_active ? (
                                   <>
                                     <PowerOff className="h-3.5 w-3.5 mr-2" />
@@ -574,11 +586,11 @@ export default function ProductsPage() {
 
         {/* Pagination */}
         {!isLoading && !isError && totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {products.length} dari {totalItems} produk
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t px-4 py-3">
+            <p className="text-xs text-muted-foreground order-2 sm:order-1">
+              {products.length} dari {totalItems} produk
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 order-1 sm:order-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -587,6 +599,10 @@ export default function ProductsPage() {
               >
                 Sebelumnya
               </Button>
+              {/* On mobile, show only current page indicator */}
+              <span className="text-xs text-muted-foreground px-2 sm:hidden">
+                {page} / {totalPages}
+              </span>
               {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
                 const pageNum = i + 1;
                 return (
@@ -594,7 +610,7 @@ export default function ProductsPage() {
                     key={pageNum}
                     variant={page === pageNum ? "default" : "outline"}
                     size="sm"
-                    className="min-w-8"
+                    className="min-w-8 hidden sm:inline-flex"
                     onClick={() => setPage(pageNum)}
                   >
                     {pageNum}
@@ -641,6 +657,49 @@ export default function ProductsPage() {
               onClick={handleDeleteConfirm}
             >
               {deleteProduct.isPending ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Toggle Active Confirmation Dialog */}
+      <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {toggleTarget?.is_active ? "Nonaktifkan Produk" : "Aktifkan Produk"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {toggleTarget?.is_active ? (
+                <>
+                  Apakah Anda yakin ingin menonaktifkan{" "}
+                  <strong>{toggleTarget?.name}</strong>?
+                  <br />
+                  Produk yang dinonaktifkan tidak akan muncul di daftar produk
+                  kasir dan staf, dan tidak dapat digunakan dalam pesanan baru.
+                </>
+              ) : (
+                <>
+                  Apakah Anda yakin ingin mengaktifkan kembali{" "}
+                  <strong>{toggleTarget?.name}</strong>?
+                  <br />
+                  Produk akan tersedia kembali untuk digunakan dalam pesanan.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant={toggleTarget?.is_active ? "destructive" : "default"}
+              disabled={toggleActive.isPending}
+              onClick={handleToggleConfirm}
+            >
+              {toggleActive.isPending
+                ? "Memproses..."
+                : toggleTarget?.is_active
+                  ? "Nonaktifkan"
+                  : "Aktifkan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

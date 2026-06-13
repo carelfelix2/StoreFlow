@@ -688,9 +688,9 @@ export default function StaffOrderPage() {
 
       {/* Sticky bottom bar (above mobile bottom nav) */}
       <div className="fixed bottom-14 left-0 right-0 z-20 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-3 max-w-screen-xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="relative">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-3 max-w-screen-xl mx-auto gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="relative shrink-0">
               <ShoppingCart className="h-5 w-5 text-muted-foreground" />
               {totalCartItems > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
@@ -698,13 +698,13 @@ export default function StaffOrderPage() {
                 </span>
               )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">
                 {totalCartItems > 0
                   ? `${totalCartItems} item`
                   : "Belum ada item"}
               </p>
-              <p className="text-sm font-bold text-primary">
+              <p className="text-sm font-bold text-primary truncate">
                 {formatCurrency(useCartStore.getState().getTotalAmount())}
               </p>
             </div>
@@ -712,10 +712,11 @@ export default function StaffOrderPage() {
           <Button
             onClick={() => setCartOpen(true)}
             disabled={totalCartItems === 0}
-            size="default"
-            className="gap-1.5"
+            size="sm"
+            className="gap-1 shrink-0"
           >
-            Lihat Keranjang
+            <span className="hidden sm:inline">Lihat Keranjang</span>
+            <span className="sm:hidden">Keranjang</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
