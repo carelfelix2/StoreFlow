@@ -27,6 +27,8 @@ import type {
   CheckPaymentStatusResponse,
   VerifyCallbackRequest,
   VerifyCallbackResponse,
+  ParseCallbackPayloadRequest,
+  ParseCallbackPayloadResponse,
 } from "./payment-provider";
 
 /**
@@ -104,6 +106,16 @@ export const duitkuProvider: PaymentProvider = {
     throw new Error(
       "Duitku provider not yet implemented. " +
       "Implement the verifyCallback method to validate Duitku webhook signatures."
+    );
+  },
+
+  async parseCallbackPayload(
+    _request: ParseCallbackPayloadRequest
+  ): Promise<ParseCallbackPayloadResponse> {
+    // TODO: Implement real Duitku callback payload parsing
+    throw new Error(
+      "Duitku provider not yet implemented. " +
+      "Implement the parseCallbackPayload method to parse Duitku webhook payloads."
     );
   },
 };

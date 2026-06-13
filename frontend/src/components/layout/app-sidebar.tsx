@@ -62,7 +62,7 @@ const allNavItems: NavItem[] = [
     href: "/settings",
     label: "Pengaturan",
     icon: Settings,
-    roles: ["owner"],
+    roles: ["owner", "cashier"],
   },
 ];
 

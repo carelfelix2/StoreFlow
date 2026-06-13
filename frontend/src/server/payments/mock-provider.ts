@@ -13,6 +13,8 @@ import type {
   CheckPaymentStatusResponse,
   VerifyCallbackRequest,
   VerifyCallbackResponse,
+  ParseCallbackPayloadRequest,
+  ParseCallbackPayloadResponse,
 } from "./payment-provider";
 
 /**
@@ -104,6 +106,31 @@ export const mockProvider: PaymentProvider = {
       gateway_reference: gatewayReference,
       status: status as "pending" | "paid" | "failed" | "expired",
       order_id: request.payload.order_id as string,
+    };
+  },
+
+  async parseCallbackPayload(
+    request: ParseCallbackPayloadRequest
+  ): Promise<ParseCallbackPayloadResponse> {
+    const payload = request.body as Record<string, unknown>;
+    const gatewayReference = payload.gateway_reference as string;
+    const status = (payload.status as string) ?? "paid";
+
+    if (!gatewayReference) {
+      return {
+        success: false,
+        gateway_reference: "",
+        status: "failed",
+      };
+    }
+
+    return {
+      success: true,
+      gateway_reference: gatewayReference,
+      status: status as "pending" | "paid" | "failed" | "expired",
+      order_id: payload.order_id as string,
+      amount: payload.amount as number | undefined,
+      raw: payload,
     };
   },
 };

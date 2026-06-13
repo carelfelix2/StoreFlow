@@ -4,19 +4,21 @@
 // Phase 5B: Cash payment dialog for approved orders.
 // Phase 6: Receipt preview and browser print for paid orders.
 // Phase 7A: QRIS payment dialog for approved orders.
+// Phase 8: Customer display controls for optional second monitor.
 // =============================================================================
 
 "use client";
 
 import { useState, useCallback } from "react";
 import { useOrders, useReviewOrder, useApproveOrder, useCancelOrder, useProcessCashPayment, useReceipt, useMarkPrinted } from "@/hooks/use-orders";
+import { useSetDisplayOrder, useClearDisplay } from "@/hooks/use-customer-display";
 import type { OrderResponse, ReceiptResponse } from "@/lib/api/orders";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format-currency";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
-import { Search, X, ChevronLeft, ChevronRight, ShoppingCart, Clock, User, FileText, Package, Wallet, Banknote, Printer, QrCode } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ShoppingCart, Clock, User, FileText, Package, Wallet, Banknote, Printer, QrCode, Monitor, MonitorOff, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -277,9 +279,10 @@ interface OrderDetailDrawerProps {
   onCashPaymentClick: (order: OrderResponse) => void;
   onQrisPaymentClick: (order: OrderResponse) => void;
   onPrintReceiptClick: (order: OrderResponse) => void;
+  onSendToDisplay: (order: OrderResponse) => void;
 }
 
-function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQrisPaymentClick, onPrintReceiptClick }: OrderDetailDrawerProps) {
+function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQrisPaymentClick, onPrintReceiptClick, onSendToDisplay }: OrderDetailDrawerProps) {
   const reviewMutation = useReviewOrder();
   const approveMutation = useApproveOrder();
   const cancelMutation = useCancelOrder();
@@ -423,6 +426,21 @@ function OrderDetailDrawer({ order, open, onOpenChange, onCashPaymentClick, onQr
 
         {/* Action Buttons */}
         <div className="shrink-0 border-t p-4 space-y-2">
+          {/* Phase 8: Send to Display button — available for any non-draft, non-idle order */}
+          {order.status !== "draft" && order.status !== "cancelled" && order.status !== "voided" && (
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                onSendToDisplay(order);
+                onOpenChange(false);
+              }}
+            >
+              <Send className="h-4 w-4" />
+              Kirim ke Display
+            </Button>
+          )}
+
           {order.status === "submitted" && (
             <>
               <Button
@@ -558,8 +576,21 @@ export default function CashierPage() {
   const [receiptPreviewOpen, setReceiptPreviewOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
+  // Phase 8: Customer Display controls
+  const [displayDeviceId, setDisplayDeviceId] = useState<string | null>(
+    () => {
+      if (typeof window !== "undefined") {
+        return localStorage.getItem("cd-device-id") || null;
+      }
+      return null;
+    }
+  );
+  const [displayOrderSent, setDisplayOrderSent] = useState<string | null>(null);
+
   const { data: receiptData, refetch: refetchReceipt } = useReceipt(receiptOrderId);
   const markPrintedMutation = useMarkPrinted();
+  const setDisplayOrderMutation = useSetDisplayOrder();
+  const clearDisplayMutation = useClearDisplay();
 
   const activeTabConfig = STATUS_TABS.find((t) => t.key === activeTab);
   const statusParam = activeTabConfig?.status;
@@ -635,6 +666,60 @@ export default function CashierPage() {
     setReceiptOrderId(null);
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Phase 8: Customer Display handlers
+  // ---------------------------------------------------------------------------
+
+  const handleOpenCustomerDisplay = useCallback(() => {
+    const deviceId = `CD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setDisplayDeviceId(deviceId);
+    localStorage.setItem("cd-device-id", deviceId);
+    window.open(`/customer-display/${deviceId}`, "_blank", "width=1024,height=768");
+    toast.success("Customer display opened", {
+      description: `Device: ${deviceId}`,
+    });
+  }, []);
+
+  const handleCloseCustomerDisplay = useCallback(() => {
+    setDisplayDeviceId(null);
+    setDisplayOrderSent(null);
+    localStorage.removeItem("cd-device-id");
+    toast.success("Customer display closed");
+  }, []);
+
+  const handleSendToDisplay = useCallback(
+    async (order: OrderResponse) => {
+      if (!displayDeviceId) {
+        toast.error("No customer display open", {
+          description: "Click 'Open Customer Display' first.",
+        });
+        return;
+      }
+      try {
+        await setDisplayOrderMutation.mutateAsync({
+          deviceId: displayDeviceId,
+          orderId: order.id,
+        });
+        setDisplayOrderSent(order.order_number);
+        toast.success(`Sent ${order.order_number} to display`);
+      } catch {
+        toast.error("Failed to send order to display");
+      }
+    },
+    [displayDeviceId, setDisplayOrderMutation]
+  );
+
+  const handleClearDisplay = useCallback(async () => {
+    if (!displayDeviceId) return;
+    try {
+      await clearDisplayMutation.mutateAsync(displayDeviceId);
+      setDisplayOrderSent(null);
+      toast.success("Display cleared");
+    } catch {
+      toast.error("Failed to clear display");
+    }
+  }, [displayDeviceId, clearDisplayMutation]);
+
   // Filter by search term
   const filteredOrders = orders.filter((order) => {
     if (!search) return true;
@@ -651,9 +736,52 @@ export default function CashierPage() {
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="shrink-0 space-y-3 mb-4">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Antrian Pesanan</h1>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">Antrian Pesanan</h1>
+          </div>
+
+          {/* Phase 8: Customer Display Controls */}
+          <div className="flex items-center gap-1">
+            {displayDeviceId ? (
+              <>
+                <Badge
+                  variant="outline"
+                  className="rounded-full px-2 py-0.5 text-xs font-mono"
+                >
+                  Display Active
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleClearDisplay}
+                  disabled={clearDisplayMutation.isPending}
+                  title="Clear Display"
+                >
+                  <MonitorOff className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleCloseCustomerDisplay}
+                  title="Close Display"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenCustomerDisplay}
+                className="gap-1.5"
+              >
+                <Monitor className="h-4 w-4" />
+                Open Customer Display
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Status Tabs */}
@@ -730,7 +858,11 @@ export default function CashierPage() {
         {!isLoading &&
           !isError &&
           filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} onSelect={handleSelectOrder} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              onSelect={handleSelectOrder}
+            />
           ))}
       </div>
 
@@ -769,6 +901,7 @@ export default function CashierPage() {
         onCashPaymentClick={handleCashPaymentClick}
         onQrisPaymentClick={handleQrisPaymentClick}
         onPrintReceiptClick={handlePrintReceiptClick}
+        onSendToDisplay={handleSendToDisplay}
       />
 
       {/* Cash Payment Dialog */}

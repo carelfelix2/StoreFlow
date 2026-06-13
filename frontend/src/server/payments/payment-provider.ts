@@ -70,6 +70,30 @@ export interface VerifyCallbackResponse {
 }
 
 /**
+ * Request to parse a raw callback/webhook payload from a payment gateway.
+ */
+export interface ParseCallbackPayloadRequest {
+  /** Raw request body (parsed JSON or raw text) */
+  body: unknown;
+  /** HTTP headers from the callback request */
+  headers?: Record<string, string>;
+  /** Raw body string for signature verification (some gateways need the raw string) */
+  raw_body?: string;
+}
+
+/**
+ * Response from parsing a callback payload.
+ */
+export interface ParseCallbackPayloadResponse {
+  success: boolean;
+  gateway_reference: string;
+  status: "pending" | "paid" | "failed" | "expired";
+  order_id?: string;
+  amount?: number;
+  raw?: Record<string, unknown>;
+}
+
+/**
  * Payment provider interface.
  * All payment gateway integrations must implement this interface.
  */
@@ -93,4 +117,13 @@ export interface PaymentProvider {
    * Validates signature and extracts payment status.
    */
   verifyCallback(request: VerifyCallbackRequest): Promise<VerifyCallbackResponse>;
+
+  /**
+   * Parse a raw callback/webhook payload into a standardized format.
+   * Unlike verifyCallback, this does NOT validate signatures — it only
+   * extracts structured data from the gateway-specific payload format.
+   * Use this when you need to inspect callback data before verification,
+   * or when the gateway sends notifications in a non-standard format.
+   */
+  parseCallbackPayload(request: ParseCallbackPayloadRequest): Promise<ParseCallbackPayloadResponse>;
 }

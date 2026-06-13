@@ -21,7 +21,7 @@ import {
   Upload,
   ImageIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -519,11 +519,11 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <Button variant="ghost" size="icon-sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Aksi</span>
-                          </Button>
+                        <DropdownMenuTrigger
+                          className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Aksi</span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem onClick={() => handleOpenDetail(product)}>

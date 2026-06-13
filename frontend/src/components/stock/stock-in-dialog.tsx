@@ -63,12 +63,14 @@ export function StockInDialog({ products, onSubmit }: StockInDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Stok Masuk
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button>
+            <Plus className="h-4 w-4" />
+            Stok Masuk
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tambah Stok</DialogTitle>

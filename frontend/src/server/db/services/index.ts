@@ -7,9 +7,9 @@
 
 export * from "./category-service";
 export * from "./product-service";
+export * from "./user-service";
 
 // To be added in future phases:
-// export * from "./auth-service";
 // export * from "./order-service";
 // export * from "./payment-service";
 // export * from "./stock-service";

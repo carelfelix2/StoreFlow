@@ -1,4 +1,81 @@
-# Payment QRIS
+# Payment QRIS & Gateway Architecture
+
+## Payment Provider Architecture
+
+StoreFlow uses a **gateway-agnostic payment provider layer** that abstracts all payment gateway integrations behind a single [`PaymentProvider`](frontend/src/server/payments/payment-provider.ts) interface.
+
+### Supported Providers
+
+| Provider | Status | Env Key | Required Variables |
+|----------|--------|---------|-------------------|
+| **mock** | ✅ Working | `mock` | None (development/testing) |
+| **duitku** | 🔧 Placeholder | `duitku` | `DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY` |
+| **midtrans** | 🔧 Placeholder | `midtrans` | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` |
+| **xendit** | 🔧 Placeholder (optional) | `xendit` | `XENDIT_SECRET_KEY` |
+
+### Provider Selection
+
+Provider selection is **explicit** — set `PAYMENT_PROVIDER` in `.env.local`:
+
+```env
+# Use mock provider for development
+PAYMENT_PROVIDER=mock
+
+# Switch to Duitku later:
+# PAYMENT_PROVIDER=duitku
+# DUITKU_MERCHANT_CODE=xxx
+# DUITKU_API_KEY=xxx
+
+# Switch to Midtrans later:
+# PAYMENT_PROVIDER=midtrans
+# MIDTRANS_SERVER_KEY=SB-Mid-server-xxx
+# MIDTRANS_CLIENT_KEY=SB-Mid-client-xxx
+
+# Switch to Xendit later (optional):
+# PAYMENT_PROVIDER=xendit
+# XENDIT_SECRET_KEY=xnd_development_xxx
+```
+
+**No auto-selection.** The system never auto-selects a provider based on partial env keys.
+If `PAYMENT_PROVIDER` is missing, the app returns:
+> "PAYMENT_PROVIDER is not set. Please add PAYMENT_PROVIDER=mock (or duitku, midtrans, xendit) to your .env.local file."
+
+If the selected provider requires keys that are not configured, the app returns:
+> "Payment provider is not configured."
+
+### PaymentProvider Interface
+
+Every provider implements these methods (see [`payment-provider.ts`](frontend/src/server/payments/payment-provider.ts)):
+
+| Method | Purpose |
+|--------|---------|
+| `createQrisPayment()` | Create a QRIS payment for an order |
+| `checkPaymentStatus()` | Check payment status by gateway reference |
+| `verifyCallback()` | Verify webhook signature and extract status |
+| `parseCallbackPayload()` | Parse raw callback payload without signature verification |
+
+### How to Switch to a Real Gateway Later
+
+1. **Choose your provider** (e.g., Duitku or Midtrans).
+2. **Sign up** for a merchant account on their website.
+3. **Get API keys** from their dashboard (sandbox keys first).
+4. **Set env variables** in `.env.local` (see table above).
+5. **Change `PAYMENT_PROVIDER`** to the provider name.
+6. **Implement** the provider's methods in `frontend/src/server/payments/[provider]-provider.ts`.
+7. **Test** with sandbox environment first.
+
+### How Mock QRIS Works
+
+The mock provider is a fully working in-memory provider for development:
+
+- Creates mock QRIS payload strings (format: `MOCKQRIS|order_id|order_number|amount|reference|expired_at`)
+- Tracks payment status in memory
+- Supports `POST /api/payments/[id]/mock-paid` to simulate successful payment
+- No external API keys required
+
+---
+
+# Payment QRIS (Original Content)
 
 ## Goal
 Sistem bisa menerima pembayaran QRIS menggunakan payment gateway Indonesia.
